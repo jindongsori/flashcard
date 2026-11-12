@@ -792,7 +792,7 @@
     window.addEventListener('error', ev => showDebugError('error', ev.message + ' (line ' + ev.lineno + ')'));
 
     // ── Apps Script 서버 주소 (배포 관리에 나오는 /exec 주소) ──
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwKtyOTKrHZhqz2T0_F0urihNWGtEkgcPWlfKMgRBEkJcJndhdFKuswRUDrM6GvxKcW/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbw6AVCcJaygsJPW4zUvHemt9hSsyBhKr4DsbEmsYjpk8bf1oceZAlibUqknhf7Pf0F_/exec';
 
     function api(action, params) {
       return fetch(API_URL, {
@@ -2152,13 +2152,28 @@
       const empty = document.getElementById('speakEmpty');
       empty.style.display = 'block';
       empty.innerHTML = '<span class="spinner"></span>' + ST().loading;
-      api('script', { chapter: ch })
+      const load = (tries) => api('script', { chapter: ch })
         .then(r => {
-          const lines = (r && r.lines) || [];
+          if (!r || !r.ok) throw new Error((r && (r.serverError || r.error)) || 'empty response');
+          const lines = r.lines || [];
           scriptCache[ch] = lines;
           if (currentChapter === ch) startSpeak(lines);
         })
-        .catch(() => { empty.textContent = ST().none; });
+        .catch(e => {
+          if (tries > 0) return load(tries - 1); // 한 번 자동 재시도
+          empty.innerHTML = '';
+          empty.appendChild(document.createTextNode(ST().none));
+          const info = document.createElement('div');
+          info.style.cssText = 'font-size:11px; margin-top:8px; word-break:break-all;';
+          info.textContent = '(' + String(e && e.message || e).slice(0, 200) + ')';
+          const retry = document.createElement('button');
+          retry.className = 'btn';
+          retry.style.marginTop = '14px';
+          retry.textContent = '↻';
+          retry.onclick = () => openSpeak();
+          empty.append(info, retry);
+        });
+      load(1);
     }
 
     // 챕터(C열) 기준으로 나누고, 그래도 길면 15문장씩 자름
