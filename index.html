@@ -118,6 +118,11 @@
     }
     .chapter-card:hover { border-color: var(--purple); background: #f5f0ff; }
     .chapter-card .name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .chapter-card { overflow: hidden; }
+    .chapter-thumb {
+      display: block; width: calc(100% + 28px); margin: -14px -14px 10px;
+      aspect-ratio: 16 / 9; object-fit: cover; background: var(--border);
+    }
     .chapter-card .count { font-size: 12px; color: var(--text-muted); }
 
     /* ── 메인 화면 ── */
@@ -737,7 +742,8 @@
     window.addEventListener('error', ev => showDebugError('error', ev.message + ' (line ' + ev.lineno + ')'));
 
     // ── Apps Script 서버 주소 (배포 관리에 나오는 /exec 주소) ──
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyOScmLV47TcBCnPqZeGxCUywI_WUGTbpMVOIxrihGnipAc1HT_DU6GZY43juOP6jG7/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbytN3aNXU12JuH3v3ccAkEGyMXcbErnncBn7UAq1nEXEqtwCcAgifeGE3z-4xzic4Ql/exec';
+
     function api(action, params) {
       return fetch(API_URL, {
         method: 'POST',
@@ -1405,11 +1411,19 @@
           const card = document.createElement('div');
           card.className = 'chapter-card';
           card.onclick = () => chooseChapter(ch);
-          card.innerHTML = '<div class="name">' + ch + '</div><div class="count">' + T().termsCount(allData[ch].length) + '</div>' + progressHtml(ch);
+          const thumb = thumbUrl(allLinks[ch]);
+          card.innerHTML = (thumb ? '<img class="chapter-thumb" loading="lazy" src="' + thumb + '" onerror="this.remove()">' : '') +
+            '<div class="name">' + ch + '</div><div class="count">' + T().termsCount(allData[ch].length) + '</div>' + progressHtml(ch);
           grid.appendChild(card);
         });
         container.appendChild(grid);
       });
+    }
+
+    // 유튜브 링크 → 썸네일 이미지 주소
+    function thumbUrl(link) {
+      const m = String(link || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/live\/|\/embed\/)([A-Za-z0-9_-]{11})/);
+      return m ? 'https://i.ytimg.com/vi/' + m[1] + '/mqdefault.jpg' : '';
     }
 
     // 챕터 카드에 "12/30 ✓" + 진행 막대
