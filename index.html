@@ -539,9 +539,15 @@
         </button>
       </div>
 
-      <div class="pdf-row" style="margin-top:0;">
-        <button id="speakBtn" class="pdf-btn" style="background:var(--purple);" onclick="openSpeak()">🗣️ Speaking practice</button>
-        <button id="youtubeBtn" class="pdf-btn" style="display:none; background:#e5484d;" onclick="openYoutube()">▶ Watch on YouTube</button>
+      <div class="activity-row" style="grid-template-columns:1fr 1fr;">
+        <button class="activity-tile" onclick="openSpeak()">
+          <span class="activity-icon">🗣️</span>
+          <span id="speakBtn">Speaking practice</span>
+        </button>
+        <button id="youtubeBtn" class="activity-tile" style="display:none;" onclick="openYoutube()">
+          <span class="activity-icon">▶️</span>
+          <span id="youtubeLabel">Watch on YouTube</span>
+        </button>
       </div>
 
       <button id="weakReviewBtn" class="pdf-btn" style="display:none; width:100%; margin-top:12px; background:#e8590c;" onclick="startWeakReview()"></button>
@@ -1299,8 +1305,8 @@
       document.getElementById('tileMatch').textContent = t.match;
       document.getElementById('tileVocab').textContent = t.vocabTile;
       document.getElementById('scriptPdfBtn').textContent = t.scriptPdf;
-      document.getElementById('youtubeBtn').textContent = t.watchVideo;
-      document.getElementById('speakBtn').textContent = ST().btn;
+      document.getElementById('youtubeLabel').textContent = t.watchVideo.replace(/^▶\s*/, '');
+      document.getElementById('speakBtn').textContent = ST().btn.replace(/^🗣️\s*/, '');
       document.getElementById('vocabPdfBtn').textContent = t.vocabPdf;
       document.querySelectorAll('.back-link').forEach(el => {
         if (el.id !== 'restartFlashBtn') el.textContent = t.back;
@@ -1509,7 +1515,7 @@
       document.getElementById('chapterGridScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'block';
       document.getElementById('currentChapterLabel').textContent = chapterName;
-      document.getElementById('youtubeBtn').style.display = allLinks[chapterName] ? 'block' : 'none';
+      document.getElementById('youtubeBtn').style.display = allLinks[chapterName] ? 'flex' : 'none';
       updateWeakButton();
 
       renderMiniCard();
