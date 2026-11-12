@@ -2137,6 +2137,32 @@
     let speakGroups = [];
     let speakGroupIdx = -1;
     const SPEAK_CHUNK = 15; // 한 파트 최대 문장 수
+    const SPEAK_TOTAL = 30; // 따라 말하기 문장 수
+
+    // 챕터(C열)별로 균등하게 나눠서 문장 뽑기
+    // 너무 짧은 말(네, 아…)이나 너무 긴 문장은 되도록 빼고, 챕터 안에서 고르게 간격을 두고 고름
+    function pickCoreLines(lines, total) {
+      const byCh = [];
+      lines.forEach(l => {
+        const last = byCh[byCh.length - 1];
+        if (!last || (l.chapter && l.chapter !== last.ch)) byCh.push({ ch: l.chapter || '', lines: [l] });
+        else last.lines.push(l);
+      });
+      const len = l => normKo(l.ko).length;
+      const n = byCh.length;
+      const base = Math.floor(total / n), extra = total % n;
+      const picked = [];
+      byCh.forEach((g, gi) => {
+        const want = Math.min(g.lines.length, base + (gi < extra ? 1 : 0));
+        if (!want) return;
+        let pool = g.lines.filter(l => len(l) >= 6 && len(l) <= 30);
+        if (pool.length < want) pool = g.lines.filter(l => len(l) >= 4);
+        if (pool.length < want) pool = g.lines;
+        const step = pool.length / want;
+        for (let i = 0; i < want; i++) picked.push(pool[Math.floor(i * step + step / 2)]);
+      });
+      return picked;
+    }
     let recog = null;
     let recogOn = false;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2213,9 +2239,9 @@
         empty.textContent = ST().none;
         return;
       }
-      speakGroups = buildSpeakGroups(lines);
-      if (speakGroups.length > 1) showSpeakPicker();
-      else startSpeakGroup(0);
+      // 핵심 문장 30개만 (챕터별로 균등하게)
+      speakGroups = [{ label: 'core30', lines: pickCoreLines(lines, SPEAK_TOTAL) }];
+      startSpeakGroup(0);
     }
 
     function speakDoneKey(i) { return 'ekc_speak_' + currentChapter + '_' + speakGroups[i].label; }
@@ -2265,8 +2291,9 @@
       document.getElementById('speakDoneTitle').textContent = t.done;
       const next = speakGroups[speakGroupIdx + 1];
       const nextBtn = document.getElementById('speakNextBtn');
-      nextBtn.style.display = next ? 'block' : 'none';
-      if (next) nextBtn.textContent = t.next(next.label);
+      nextBtn.style.display = 'block';
+      if (next) { nextBtn.textContent = t.next(next.label); nextBtn.onclick = () => startSpeakGroup(speakGroupIdx + 1); }
+      else { nextBtn.textContent = '↻ ' + T().playAgain; nextBtn.onclick = () => startSpeakGroup(speakGroupIdx); }
       const listBtn = document.getElementById('speakListBtn');
       listBtn.style.display = speakGroups.length > 1 ? 'block' : 'none';
       listBtn.textContent = t.list;
