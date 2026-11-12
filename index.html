@@ -742,7 +742,7 @@
     window.addEventListener('error', ev => showDebugError('error', ev.message + ' (line ' + ev.lineno + ')'));
 
     // ── Apps Script 서버 주소 (배포 관리에 나오는 /exec 주소) ──
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzh9eKEK0vEnIELaNtxcQHpuCYtYNKPc8j9Q5usGXZlIk5LzSX91HqwG0bI8vIulFef/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzxSQhSiMGCbA4sfVQV2z8qLvAo2XJeDIbtSI-4tmbm53oZt2cjoRVxoUMrrVTSpyU/exec';
 
     function api(action, params) {
       return fetch(API_URL, {
@@ -1321,6 +1321,10 @@
     }
 
     function onCodeResult(result) {
+      if (result && result.serverError) {
+        document.getElementById('gateError').textContent = 'Server error: ' + result.serverError.slice(0, 200);
+        return;
+      }
       if (!result.ok) {
         document.getElementById('gateError').textContent = 'Incorrect code. Please check again.';
         return;
