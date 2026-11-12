@@ -539,6 +539,8 @@
         </button>
       </div>
 
+      <button id="speakBtn" class="pdf-btn" style="width:100%; margin-top:0; background:var(--purple);" onclick="openSpeak()">🗣️ Speaking practice</button>
+
       <button id="youtubeBtn" class="pdf-btn" style="display:none; width:100%; margin-top:16px; background:#e5484d;" onclick="openYoutube()">▶ Watch on YouTube</button>
 
       <button id="weakReviewBtn" class="pdf-btn" style="display:none; width:100%; margin-top:12px; background:#e8590c;" onclick="startWeakReview()"></button>
@@ -637,6 +639,43 @@
         <div id="flashChunkNavContainer" style="margin-bottom:22px;"></div>
         <button id="practiceFromResultsBtn" class="btn" style="display:block; width:auto; padding:10px 20px; margin:0 auto 8px; background:#1a1a2e;" onclick="practiceFromResults()">🔄 문제로 연습하기</button>
       </div>
+    </div>
+
+    <!-- 4-2. 따라 말하기 화면 -->
+    <div id="speakScreen" style="display:none;">
+      <div class="top-row">
+        <button class="back-link" onclick="closeSpeak()">← Back</button>
+        <div style="flex:1;"></div>
+        <span id="speakCounter" style="font-size:13px; color:var(--text-muted);"></span>
+      </div>
+      <div style="height:8px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:16px;">
+        <div id="speakProgress" style="height:100%; width:0%; background:var(--purple); transition:width 0.2s;"></div>
+      </div>
+      <div id="speakGuide" style="margin:0 0 12px; font-size:13px; color:var(--text-muted); text-align:center;"></div>
+
+      <div id="speakBody">
+        <div class="card-box" style="cursor:default; min-height:160px;">
+          <div id="speakSpeaker" style="position:absolute; top:14px; left:16px; font-size:12px; font-weight:600; color:var(--purple);"></div>
+          <div id="speakKo" style="font-size:22px; font-weight:600; line-height:1.5;"></div>
+          <div id="speakTr" style="margin-top:12px; font-size:15px; color:var(--text-muted); line-height:1.5;"></div>
+        </div>
+
+        <div class="card-controls">
+          <button class="ctrl-btn" data-ctrl="prev" onclick="goSpeak(-1)">◀</button>
+          <button class="ctrl-btn" id="speakListenBtn" onclick="speakLine(0.9)">🔊</button>
+          <button class="ctrl-btn" id="speakSlowBtn" onclick="speakLine(0.6)">🐢</button>
+          <button class="ctrl-btn" id="speakMicBtn" onclick="toggleMic()" style="width:46px; height:46px; font-size:20px; border-color:var(--purple);">🎤</button>
+          <button class="ctrl-btn" data-ctrl="next" onclick="goSpeak(1)">▶</button>
+        </div>
+
+        <div id="speakStatus" style="text-align:center; font-size:13px; color:var(--text-muted); min-height:18px; margin-bottom:10px;"></div>
+        <div id="speakResult" style="display:none; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center;">
+          <div id="speakScore" style="font-size:28px; font-weight:700; margin-bottom:6px;"></div>
+          <div id="speakWords" style="font-size:18px; line-height:1.7;"></div>
+          <div id="speakHeard" style="margin-top:8px; font-size:12px; color:var(--text-muted);"></div>
+        </div>
+      </div>
+      <div id="speakEmpty" style="display:none; text-align:center; color:var(--text-muted); margin-top:40px;"></div>
     </div>
 
     <!-- 5. 카드 맞추기 게임 화면 -->
@@ -742,7 +781,7 @@
     window.addEventListener('error', ev => showDebugError('error', ev.message + ' (line ' + ev.lineno + ')'));
 
     // ── Apps Script 서버 주소 (배포 관리에 나오는 /exec 주소) ──
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwKtyOTKrHZhqz2T0_F0urihNWGtEkgcPWlfKMgRBEkJcJndhdFKuswRUDrM6GvxKcW/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbw6AVCcJaygsJPW4zUvHemt9hSsyBhKr4DsbEmsYjpk8bf1oceZAlibUqknhf7Pf0F_/exec';
 
     function api(action, params) {
       return fetch(API_URL, {
@@ -1249,6 +1288,7 @@
       document.getElementById('tileVocab').textContent = t.vocabTile;
       document.getElementById('scriptPdfBtn').textContent = t.scriptPdf;
       document.getElementById('youtubeBtn').textContent = t.watchVideo;
+      document.getElementById('speakBtn').textContent = ST().btn;
       document.getElementById('vocabPdfBtn').textContent = t.vocabPdf;
       document.querySelectorAll('.back-link').forEach(el => {
         if (el.id !== 'restartFlashBtn') el.textContent = t.back;
@@ -1828,10 +1868,11 @@
       return preferred || koVoices[0];
     }
 
-    function speak(text) {
+    function speak(text, rate) {
+      try { speechSynthesis.cancel(); } catch (e) {}
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'ko-KR';
-      u.rate = 0.9; // 일부 음성/브라우저에서는 반영 안 될 수 있음 (알려진 한계)
+      u.rate = rate || 0.9; // 일부 음성/브라우저에서는 반영 안 될 수 있음 (알려진 한계)
       const voice = pickBestKoreanVoice();
       if (voice) u.voice = voice;
       speechSynthesis.speak(u);
@@ -1879,10 +1920,11 @@
     const SCREEN_DEPTH = {
       gateScreen: 0, langScreen: 1, chapterGridScreen: 2, mainScreen: 3,
       vocabScreen: 4, flashcardScreen: 4, quizModeScreen: 4, matchScreen: 4, chunkPickScreen: 4,
-      learnScreen: 4
+      learnScreen: 4, speakScreen: 4
     };
     const SCREEN_BACK = {
       learnScreen: () => closeLearnMode(),
+      speakScreen: () => closeSpeak(),
       quizModeScreen: () => closeQuizModePicker(),
       flashcardScreen: () => closeFlashcardScreen(),
       matchScreen: () => closeMatchGame(),
@@ -2066,6 +2108,172 @@
       clearInterval(matchTimerInterval);
       document.getElementById('matchScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'block';
+    }
+
+    // ── 따라 말하기 ──────────────────────────────────
+    const SPEAK_TEXT = {
+      en: { btn: '🗣️ Speaking practice', guide: '🔊 Listen → 🎤 tap and say it → see your score. 🐢 = slow', loading: 'Loading...', none: "This episode's script isn't ready yet.", listening: '🎤 Listening... say the sentence', tapMic: 'Tap 🎤 and say the sentence', noMic: "Voice recognition isn't supported in this browser. Listen and repeat out loud! (Try Chrome or Safari)", noSpeech: "Couldn't hear you. Tap 🎤 and try again.", denied: 'Please allow microphone access.', heard: 'Heard: ', great: 'Perfect! 🎉', good: 'Good! 👍', retry: 'Try again 💪' },
+      vi: { btn: '🗣️ Luyện nói', guide: '🔊 Nghe → 🎤 nhấn và nói theo → xem điểm. 🐢 = chậm', loading: 'Đang tải...', none: 'Kịch bản của tập này chưa sẵn sàng.', listening: '🎤 Đang nghe... hãy nói câu này', tapMic: 'Nhấn 🎤 và nói câu này', noMic: 'Trình duyệt này không hỗ trợ nhận giọng nói. Hãy nghe và nói to theo! (Dùng Chrome hoặc Safari)', noSpeech: 'Không nghe thấy. Nhấn 🎤 và thử lại.', denied: 'Hãy cho phép dùng micro.', heard: 'Đã nghe: ', great: 'Hoàn hảo! 🎉', good: 'Tốt lắm! 👍', retry: 'Thử lại nhé 💪' },
+      ja: { btn: '🗣️ スピーキング練習', guide: '🔊 聞く → 🎤 タップして言う → 点数を確認。🐢 = ゆっくり', loading: '読み込み中...', none: 'このエピソードのスクリプトはまだありません。', listening: '🎤 聞いています... 文を言ってください', tapMic: '🎤 をタップして文を言ってください', noMic: 'このブラウザは音声認識に対応していません。聞いて声に出して練習しましょう！（Chrome・Safari推奨）', noSpeech: '聞き取れませんでした。🎤 をもう一度タップしてください。', denied: 'マイクの使用を許可してください。', heard: '認識: ', great: '完璧！🎉', good: 'いいね！👍', retry: 'もう一度 💪' },
+      ru: { btn: '🗣️ Говорим вслух', guide: '🔊 Слушайте → 🎤 нажмите и повторите → смотрите результат. 🐢 = медленно', loading: 'Загрузка...', none: 'Сценарий этого эпизода ещё не готов.', listening: '🎤 Слушаю... произнесите фразу', tapMic: 'Нажмите 🎤 и произнесите фразу', noMic: 'Этот браузер не поддерживает распознавание речи. Слушайте и повторяйте вслух! (Chrome или Safari)', noSpeech: 'Не расслышал. Нажмите 🎤 и попробуйте снова.', denied: 'Разрешите доступ к микрофону.', heard: 'Услышано: ', great: 'Отлично! 🎉', good: 'Хорошо! 👍', retry: 'Ещё раз 💪' },
+      th: { btn: '🗣️ ฝึกพูดตาม', guide: '🔊 ฟัง → 🎤 แตะแล้วพูดตาม → ดูคะแนน 🐢 = ช้า', loading: 'กำลังโหลด...', none: 'สคริปต์ของตอนนี้ยังไม่พร้อม', listening: '🎤 กำลังฟัง... พูดประโยคนี้', tapMic: 'แตะ 🎤 แล้วพูดประโยคนี้', noMic: 'เบราว์เซอร์นี้ไม่รองรับการจดจำเสียง ฟังแล้วพูดตามออกเสียงดังๆ! (ใช้ Chrome หรือ Safari)', noSpeech: 'ไม่ได้ยินเสียง แตะ 🎤 แล้วลองอีกครั้ง', denied: 'กรุณาอนุญาตการใช้ไมโครโฟน', heard: 'ได้ยิน: ', great: 'สมบูรณ์แบบ! 🎉', good: 'ดีมาก! 👍', retry: 'ลองอีกครั้ง 💪' }
+    };
+    function ST() { return SPEAK_TEXT[currentLang] || SPEAK_TEXT.en; }
+
+    const scriptCache = {};
+    let speakLines = [];
+    let speakPos = 0;
+    let recog = null;
+    let recogOn = false;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function openSpeak() {
+      logEvent('open_speak', currentChapter);
+      ['mainScreen'].forEach(id => document.getElementById(id).style.display = 'none');
+      document.getElementById('speakScreen').style.display = 'block';
+      document.getElementById('speakGuide').textContent = ST().guide;
+      const ch = currentChapter;
+      if (scriptCache[ch]) { startSpeak(scriptCache[ch]); return; }
+      document.getElementById('speakBody').style.display = 'none';
+      const empty = document.getElementById('speakEmpty');
+      empty.style.display = 'block';
+      empty.innerHTML = '<span class="spinner"></span>' + ST().loading;
+      api('script', { chapter: ch })
+        .then(r => {
+          const lines = (r && r.lines) || [];
+          scriptCache[ch] = lines;
+          if (currentChapter === ch) startSpeak(lines);
+        })
+        .catch(() => { empty.textContent = ST().none; });
+    }
+
+    function startSpeak(lines) {
+      speakLines = lines;
+      speakPos = 0;
+      const empty = document.getElementById('speakEmpty');
+      if (!lines.length) {
+        document.getElementById('speakBody').style.display = 'none';
+        empty.style.display = 'block';
+        empty.textContent = ST().none;
+        return;
+      }
+      empty.style.display = 'none';
+      document.getElementById('speakBody').style.display = 'block';
+      renderSpeak();
+    }
+
+    function renderSpeak() {
+      stopMic();
+      const line = speakLines[speakPos];
+      if (!line) return;
+      document.getElementById('speakSpeaker').textContent = line.speaker || '';
+      document.getElementById('speakKo').textContent = line.ko;
+      document.getElementById('speakTr').textContent = line[currentLang] || line.en || '';
+      document.getElementById('speakCounter').textContent = (speakPos + 1) + ' / ' + speakLines.length;
+      document.getElementById('speakProgress').style.width = Math.round((speakPos + 1) / speakLines.length * 100) + '%';
+      document.getElementById('speakResult').style.display = 'none';
+      document.getElementById('speakStatus').textContent = SR ? ST().tapMic : ST().noMic;
+      document.getElementById('speakMicBtn').style.display = SR ? 'flex' : 'none';
+    }
+
+    function speakLine(rate) {
+      const line = speakLines[speakPos];
+      if (line) { stopMic(); speak(line.ko, rate); }
+    }
+
+    function goSpeak(delta) {
+      if (!speakLines.length) return;
+      speakPos = (speakPos + delta + speakLines.length) % speakLines.length;
+      renderSpeak();
+    }
+
+    function closeSpeak() {
+      stopMic();
+      try { speechSynthesis.cancel(); } catch (e) {}
+      document.getElementById('speakScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+    }
+
+    function stopMic() {
+      recogOn = false;
+      const btn = document.getElementById('speakMicBtn');
+      if (btn) { btn.style.background = ''; btn.textContent = '🎤'; }
+      if (recog) { try { recog.abort(); } catch (e) {} recog = null; }
+    }
+
+    function toggleMic() {
+      if (!SR) return;
+      if (recogOn) { stopMic(); return; }
+      try { speechSynthesis.cancel(); } catch (e) {}
+      const line = speakLines[speakPos];
+      if (!line) return;
+      const r = new SR();
+      r.lang = 'ko-KR';
+      r.interimResults = false;
+      r.maxAlternatives = 5;
+      r.continuous = false;
+      let got = false;
+      r.onresult = (ev) => {
+        got = true;
+        const alts = [];
+        const res = ev.results[0];
+        for (let i = 0; i < res.length; i++) alts.push(res[i].transcript);
+        showSpeakResult(line.ko, alts);
+      };
+      r.onerror = (ev) => {
+        got = true;
+        document.getElementById('speakStatus').textContent =
+          (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') ? ST().denied : ST().noSpeech;
+      };
+      r.onend = () => {
+        if (!got) document.getElementById('speakStatus').textContent = ST().noSpeech;
+        stopMic();
+      };
+      recog = r;
+      recogOn = true;
+      const btn = document.getElementById('speakMicBtn');
+      btn.style.background = '#fdeaea';
+      btn.textContent = '⏹';
+      document.getElementById('speakResult').style.display = 'none';
+      document.getElementById('speakStatus').textContent = ST().listening;
+      try { r.start(); } catch (e) { stopMic(); }
+    }
+
+    // 글자만 남기기 (문장부호·띄어쓰기 제거)
+    function normKo(t) { return String(t || '').toLowerCase().replace(/[^0-9a-z가-힣]/g, ''); }
+
+    function scoreSpeech(target, heard) {
+      const h = normKo(heard);
+      const words = String(target).split(/\s+/).filter(w => normKo(w));
+      const marks = words.map(w => ({ w: w, ok: h.indexOf(normKo(w)) > -1 }));
+      const ok = marks.filter(m => m.ok).length;
+      return { marks: marks, pct: words.length ? Math.round(ok / words.length * 100) : 0 };
+    }
+
+    function showSpeakResult(target, alts) {
+      let best = null, bestHeard = '';
+      alts.forEach(a => {
+        const r = scoreSpeech(target, a);
+        if (!best || r.pct > best.pct) { best = r; bestHeard = a; }
+      });
+      if (!best) return;
+      const t = ST();
+      const scoreEl = document.getElementById('speakScore');
+      scoreEl.textContent = best.pct + '% ' + (best.pct >= 90 ? t.great : best.pct >= 60 ? t.good : t.retry);
+      scoreEl.style.color = best.pct >= 90 ? '#2f9e44' : best.pct >= 60 ? '#e8590c' : '#e5484d';
+      const wordsEl = document.getElementById('speakWords');
+      wordsEl.innerHTML = '';
+      best.marks.forEach(m => {
+        const sp = document.createElement('span');
+        sp.textContent = m.w + ' ';
+        sp.style.color = m.ok ? '#2f9e44' : '#e5484d';
+        sp.style.fontWeight = '600';
+        wordsEl.appendChild(sp);
+      });
+      document.getElementById('speakHeard').textContent = t.heard + bestHeard;
+      document.getElementById('speakResult').style.display = 'block';
+      document.getElementById('speakStatus').textContent = '';
+      logEvent('speak_try', currentChapter + ' ' + (speakPos + 1) + ' ' + best.pct + '%');
     }
 
     // ── 학습하기(Learn) 모드 ──────────────────────────
