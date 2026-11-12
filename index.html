@@ -676,6 +676,17 @@
         </div>
       </div>
       <div id="speakEmpty" style="display:none; text-align:center; color:var(--text-muted); margin-top:40px;"></div>
+
+      <div id="speakPicker" style="display:none;">
+        <h3 id="speakPickTitle" style="margin:0 0 14px;"></h3>
+        <div id="speakPickList" class="chapter-grid"></div>
+      </div>
+
+      <div id="speakDone" style="display:none; text-align:center; margin-top:30px;">
+        <h3 id="speakDoneTitle"></h3>
+        <button id="speakNextBtn" class="btn" style="display:block; margin:0 auto 10px;" onclick="startSpeakGroup(speakGroupIdx + 1)"></button>
+        <button id="speakListBtn" style="display:block; margin:0 auto; background:var(--surface); color:inherit; border:1px solid var(--border); padding:10px 20px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer;" onclick="showSpeakPicker()"></button>
+      </div>
     </div>
 
     <!-- 5. 카드 맞추기 게임 화면 -->
@@ -781,7 +792,7 @@
     window.addEventListener('error', ev => showDebugError('error', ev.message + ' (line ' + ev.lineno + ')'));
 
     // ── Apps Script 서버 주소 (배포 관리에 나오는 /exec 주소) ──
-    const API_URL = 'https://script.google.com/macros/s/AKfycbw6AVCcJaygsJPW4zUvHemt9hSsyBhKr4DsbEmsYjpk8bf1oceZAlibUqknhf7Pf0F_/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwKtyOTKrHZhqz2T0_F0urihNWGtEkgcPWlfKMgRBEkJcJndhdFKuswRUDrM6GvxKcW/exec';
 
     function api(action, params) {
       return fetch(API_URL, {
@@ -2112,17 +2123,20 @@
 
     // ── 따라 말하기 ──────────────────────────────────
     const SPEAK_TEXT = {
-      en: { btn: '🗣️ Speaking practice', guide: '🔊 Listen → 🎤 tap and say it → see your score. 🐢 = slow', loading: 'Loading...', none: "This episode's script isn't ready yet.", listening: '🎤 Listening... say the sentence', tapMic: 'Tap 🎤 and say the sentence', noMic: "Voice recognition isn't supported in this browser. Listen and repeat out loud! (Try Chrome or Safari)", noSpeech: "Couldn't hear you. Tap 🎤 and try again.", denied: 'Please allow microphone access.', heard: 'Heard: ', great: 'Perfect! 🎉', good: 'Good! 👍', retry: 'Try again 💪' },
-      vi: { btn: '🗣️ Luyện nói', guide: '🔊 Nghe → 🎤 nhấn và nói theo → xem điểm. 🐢 = chậm', loading: 'Đang tải...', none: 'Kịch bản của tập này chưa sẵn sàng.', listening: '🎤 Đang nghe... hãy nói câu này', tapMic: 'Nhấn 🎤 và nói câu này', noMic: 'Trình duyệt này không hỗ trợ nhận giọng nói. Hãy nghe và nói to theo! (Dùng Chrome hoặc Safari)', noSpeech: 'Không nghe thấy. Nhấn 🎤 và thử lại.', denied: 'Hãy cho phép dùng micro.', heard: 'Đã nghe: ', great: 'Hoàn hảo! 🎉', good: 'Tốt lắm! 👍', retry: 'Thử lại nhé 💪' },
-      ja: { btn: '🗣️ スピーキング練習', guide: '🔊 聞く → 🎤 タップして言う → 点数を確認。🐢 = ゆっくり', loading: '読み込み中...', none: 'このエピソードのスクリプトはまだありません。', listening: '🎤 聞いています... 文を言ってください', tapMic: '🎤 をタップして文を言ってください', noMic: 'このブラウザは音声認識に対応していません。聞いて声に出して練習しましょう！（Chrome・Safari推奨）', noSpeech: '聞き取れませんでした。🎤 をもう一度タップしてください。', denied: 'マイクの使用を許可してください。', heard: '認識: ', great: '完璧！🎉', good: 'いいね！👍', retry: 'もう一度 💪' },
-      ru: { btn: '🗣️ Говорим вслух', guide: '🔊 Слушайте → 🎤 нажмите и повторите → смотрите результат. 🐢 = медленно', loading: 'Загрузка...', none: 'Сценарий этого эпизода ещё не готов.', listening: '🎤 Слушаю... произнесите фразу', tapMic: 'Нажмите 🎤 и произнесите фразу', noMic: 'Этот браузер не поддерживает распознавание речи. Слушайте и повторяйте вслух! (Chrome или Safari)', noSpeech: 'Не расслышал. Нажмите 🎤 и попробуйте снова.', denied: 'Разрешите доступ к микрофону.', heard: 'Услышано: ', great: 'Отлично! 🎉', good: 'Хорошо! 👍', retry: 'Ещё раз 💪' },
-      th: { btn: '🗣️ ฝึกพูดตาม', guide: '🔊 ฟัง → 🎤 แตะแล้วพูดตาม → ดูคะแนน 🐢 = ช้า', loading: 'กำลังโหลด...', none: 'สคริปต์ของตอนนี้ยังไม่พร้อม', listening: '🎤 กำลังฟัง... พูดประโยคนี้', tapMic: 'แตะ 🎤 แล้วพูดประโยคนี้', noMic: 'เบราว์เซอร์นี้ไม่รองรับการจดจำเสียง ฟังแล้วพูดตามออกเสียงดังๆ! (ใช้ Chrome หรือ Safari)', noSpeech: 'ไม่ได้ยินเสียง แตะ 🎤 แล้วลองอีกครั้ง', denied: 'กรุณาอนุญาตการใช้ไมโครโฟน', heard: 'ได้ยิน: ', great: 'สมบูรณ์แบบ! 🎉', good: 'ดีมาก! 👍', retry: 'ลองอีกครั้ง 💪' }
+      en: { btn: '🗣️ Speaking practice', guide: '🔊 Listen → 🎤 tap and say it → see your score. 🐢 = slow', loading: 'Loading...', none: "This episode's script isn't ready yet.", listening: '🎤 Listening... say the sentence', tapMic: 'Tap 🎤 and say the sentence', noMic: "Voice recognition isn't supported in this browser. Listen and repeat out loud! (Try Chrome or Safari)", noSpeech: "Couldn't hear you. Tap 🎤 and try again.", denied: 'Please allow microphone access.', heard: 'Heard: ', great: 'Perfect! 🎉', good: 'Good! 👍', retry: 'Try again 💪', pick: 'Choose a part', part: 'Part', lines: (n) => n + ' lines', done: 'Part complete! 🎉', next: (l) => '▶ Next: ' + l, list: '☰ All parts' },
+      vi: { btn: '🗣️ Luyện nói', guide: '🔊 Nghe → 🎤 nhấn và nói theo → xem điểm. 🐢 = chậm', loading: 'Đang tải...', none: 'Kịch bản của tập này chưa sẵn sàng.', listening: '🎤 Đang nghe... hãy nói câu này', tapMic: 'Nhấn 🎤 và nói câu này', noMic: 'Trình duyệt này không hỗ trợ nhận giọng nói. Hãy nghe và nói to theo! (Dùng Chrome hoặc Safari)', noSpeech: 'Không nghe thấy. Nhấn 🎤 và thử lại.', denied: 'Hãy cho phép dùng micro.', heard: 'Đã nghe: ', great: 'Hoàn hảo! 🎉', good: 'Tốt lắm! 👍', retry: 'Thử lại nhé 💪', pick: 'Chọn phần', part: 'Phần', lines: (n) => n + ' câu', done: 'Hoàn thành phần này! 🎉', next: (l) => '▶ Tiếp: ' + l, list: '☰ Tất cả các phần' },
+      ja: { btn: '🗣️ スピーキング練習', guide: '🔊 聞く → 🎤 タップして言う → 点数を確認。🐢 = ゆっくり', loading: '読み込み中...', none: 'このエピソードのスクリプトはまだありません。', listening: '🎤 聞いています... 文を言ってください', tapMic: '🎤 をタップして文を言ってください', noMic: 'このブラウザは音声認識に対応していません。聞いて声に出して練習しましょう！（Chrome・Safari推奨）', noSpeech: '聞き取れませんでした。🎤 をもう一度タップしてください。', denied: 'マイクの使用を許可してください。', heard: '認識: ', great: '完璧！🎉', good: 'いいね！👍', retry: 'もう一度 💪', pick: 'パートを選んでください', part: 'パート', lines: (n) => n + '文', done: 'パート完了！🎉', next: (l) => '▶ 次へ: ' + l, list: '☰ パート一覧' },
+      ru: { btn: '🗣️ Говорим вслух', guide: '🔊 Слушайте → 🎤 нажмите и повторите → смотрите результат. 🐢 = медленно', loading: 'Загрузка...', none: 'Сценарий этого эпизода ещё не готов.', listening: '🎤 Слушаю... произнесите фразу', tapMic: 'Нажмите 🎤 и произнесите фразу', noMic: 'Этот браузер не поддерживает распознавание речи. Слушайте и повторяйте вслух! (Chrome или Safari)', noSpeech: 'Не расслышал. Нажмите 🎤 и попробуйте снова.', denied: 'Разрешите доступ к микрофону.', heard: 'Услышано: ', great: 'Отлично! 🎉', good: 'Хорошо! 👍', retry: 'Ещё раз 💪', pick: 'Выберите часть', part: 'Часть', lines: (n) => n + ' фраз', done: 'Часть пройдена! 🎉', next: (l) => '▶ Далее: ' + l, list: '☰ Все части' },
+      th: { btn: '🗣️ ฝึกพูดตาม', guide: '🔊 ฟัง → 🎤 แตะแล้วพูดตาม → ดูคะแนน 🐢 = ช้า', loading: 'กำลังโหลด...', none: 'สคริปต์ของตอนนี้ยังไม่พร้อม', listening: '🎤 กำลังฟัง... พูดประโยคนี้', tapMic: 'แตะ 🎤 แล้วพูดประโยคนี้', noMic: 'เบราว์เซอร์นี้ไม่รองรับการจดจำเสียง ฟังแล้วพูดตามออกเสียงดังๆ! (ใช้ Chrome หรือ Safari)', noSpeech: 'ไม่ได้ยินเสียง แตะ 🎤 แล้วลองอีกครั้ง', denied: 'กรุณาอนุญาตการใช้ไมโครโฟน', heard: 'ได้ยิน: ', great: 'สมบูรณ์แบบ! 🎉', good: 'ดีมาก! 👍', retry: 'ลองอีกครั้ง 💪', pick: 'เลือกช่วง', part: 'ช่วง', lines: (n) => n + ' ประโยค', done: 'จบช่วงนี้แล้ว! 🎉', next: (l) => '▶ ต่อไป: ' + l, list: '☰ ทุกช่วง' }
     };
     function ST() { return SPEAK_TEXT[currentLang] || SPEAK_TEXT.en; }
 
     const scriptCache = {};
     let speakLines = [];
     let speakPos = 0;
+    let speakGroups = [];
+    let speakGroupIdx = -1;
+    const SPEAK_CHUNK = 15; // 한 파트 최대 문장 수
     let recog = null;
     let recogOn = false;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2147,19 +2161,101 @@
         .catch(() => { empty.textContent = ST().none; });
     }
 
+    // 챕터(C열) 기준으로 나누고, 그래도 길면 15문장씩 자름
+    function buildSpeakGroups(lines) {
+      const byCh = [];
+      lines.forEach(l => {
+        const last = byCh[byCh.length - 1];
+        if (!last || (l.chapter && l.chapter !== last.ch)) byCh.push({ ch: l.chapter || '', lines: [l] });
+        else last.lines.push(l);
+      });
+      const groups = [];
+      byCh.forEach(g => {
+        const base = g.ch ? 'Ch.' + g.ch : ST().part;
+        const n = Math.ceil(g.lines.length / SPEAK_CHUNK);
+        const size = Math.ceil(g.lines.length / n); // 파트 크기를 고르게 (33문장 → 11·11·11)
+        for (let i = 0; i < n; i++) {
+          const part = g.lines.slice(i * size, (i + 1) * size);
+          const label = n > 1 ? base + ' (' + (i * size + 1) + '-' + (i * size + part.length) + ')' : base;
+          groups.push({ label: label, lines: part });
+        }
+      });
+      if (groups.length > 1 && !byCh.some(g => g.ch)) {
+        groups.forEach((g, i) => { g.label = ST().part + ' ' + (i + 1); });
+      }
+      return groups;
+    }
+
+    function hideSpeakPanels() {
+      ['speakBody', 'speakEmpty', 'speakPicker', 'speakDone'].forEach(id => document.getElementById(id).style.display = 'none');
+    }
+
     function startSpeak(lines) {
-      speakLines = lines;
-      speakPos = 0;
-      const empty = document.getElementById('speakEmpty');
+      hideSpeakPanels();
       if (!lines.length) {
-        document.getElementById('speakBody').style.display = 'none';
+        const empty = document.getElementById('speakEmpty');
         empty.style.display = 'block';
         empty.textContent = ST().none;
         return;
       }
-      empty.style.display = 'none';
+      speakGroups = buildSpeakGroups(lines);
+      if (speakGroups.length > 1) showSpeakPicker();
+      else startSpeakGroup(0);
+    }
+
+    function speakDoneKey(i) { return 'ekc_speak_' + currentChapter + '_' + speakGroups[i].label; }
+
+    function showSpeakPicker() {
+      stopMic();
+      speakGroupIdx = -1;
+      hideSpeakPanels();
+      document.getElementById('speakCounter').textContent = '';
+      document.getElementById('speakProgress').style.width = '0%';
+      document.getElementById('speakGuide').style.display = 'none';
+      document.getElementById('speakPickTitle').textContent = ST().pick;
+      const list = document.getElementById('speakPickList');
+      list.innerHTML = '';
+      speakGroups.forEach((g, i) => {
+        let done = false;
+        try { done = localStorage.getItem(speakDoneKey(i)) === '1'; } catch (e) {}
+        const card = document.createElement('div');
+        card.className = 'chapter-card';
+        card.innerHTML = '<div class="name"></div><div class="count"></div>';
+        card.firstChild.textContent = g.label + (done ? ' ✓' : '');
+        if (done) card.firstChild.style.color = '#2f9e44';
+        card.lastChild.textContent = ST().lines(g.lines.length);
+        card.onclick = () => startSpeakGroup(i);
+        list.appendChild(card);
+      });
+      document.getElementById('speakPicker').style.display = 'block';
+    }
+
+    function startSpeakGroup(i) {
+      if (!speakGroups[i]) return;
+      speakGroupIdx = i;
+      speakLines = speakGroups[i].lines;
+      speakPos = 0;
+      hideSpeakPanels();
+      document.getElementById('speakGuide').style.display = 'block';
       document.getElementById('speakBody').style.display = 'block';
+      logEvent('speak_part', currentChapter + ' ' + speakGroups[i].label);
       renderSpeak();
+    }
+
+    function finishSpeakGroup() {
+      stopMic();
+      try { localStorage.setItem(speakDoneKey(speakGroupIdx), '1'); } catch (e) {}
+      hideSpeakPanels();
+      const t = ST();
+      document.getElementById('speakDoneTitle').textContent = t.done;
+      const next = speakGroups[speakGroupIdx + 1];
+      const nextBtn = document.getElementById('speakNextBtn');
+      nextBtn.style.display = next ? 'block' : 'none';
+      if (next) nextBtn.textContent = t.next(next.label);
+      const listBtn = document.getElementById('speakListBtn');
+      listBtn.style.display = speakGroups.length > 1 ? 'block' : 'none';
+      listBtn.textContent = t.list;
+      document.getElementById('speakDone').style.display = 'block';
     }
 
     function renderSpeak() {
@@ -2183,12 +2279,18 @@
 
     function goSpeak(delta) {
       if (!speakLines.length) return;
-      speakPos = (speakPos + delta + speakLines.length) % speakLines.length;
+      if (delta > 0 && speakPos === speakLines.length - 1) { finishSpeakGroup(); return; }
+      if (delta < 0 && speakPos === 0) return;
+      speakPos += delta;
       renderSpeak();
     }
 
     function closeSpeak() {
       stopMic();
+      // 파트 안에 있으면 먼저 파트 목록으로
+      const inPart = document.getElementById('speakBody').style.display !== 'none' ||
+                     document.getElementById('speakDone').style.display !== 'none';
+      if (inPart && speakGroups.length > 1) { showSpeakPicker(); return; }
       try { speechSynthesis.cancel(); } catch (e) {}
       document.getElementById('speakScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'block';
