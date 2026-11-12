@@ -5,15 +5,2379 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EasyKoreanConversation 단어카드</title>
   <style>
-    html, body { margin:0; height:100%; overflow:hidden; }
-    iframe { border:0; width:100%; height:100vh; height:100dvh; display:block; }
+    :root {
+      --purple: #7c3aed;
+      --bg: #f7f7fb;
+      --surface: #ffffff;
+      --border: #e5e5ec;
+      --text-muted: #8a8a99;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'Noto Sans KR', Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 20px;
+      color: #1a1a2e;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+
+    .center-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
+    }
+    .center-screen h2 { margin-bottom: 4px; }
+    .center-screen p { color: var(--text-muted); font-size: 14px; margin-top: 0; }
+
+    #codeInput {
+      width: 220px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      text-align: center;
+      margin: 16px 0 10px;
+    }
+    .btn {
+      background: var(--purple);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { opacity: 0.9; }
+    #gateError { color: #e5484d; font-size: 13px; min-height: 18px; }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px;
+      border: 2px solid var(--border); border-top-color: var(--purple); border-radius: 50%;
+      animation: ekcSpin 0.8s linear infinite;
+    }
+    @keyframes ekcSpin { to { transform: rotate(360deg); } }
+    #gateError.loading { color: var(--text-muted); }
+
+    .lang-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 260px;
+      margin-top: 20px;
+    }
+    .lang-btn {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+    }
+    .lang-btn:hover { border-color: var(--purple); background: #f5f0ff; }
+
+    /* ── 챕터 그리드 화면 ── */
+    #chapterGridScreen { display: none; }
+    .grid-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    #chapterSearch {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .series-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin: 18px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .chapter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .chapter-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .chapter-card:hover { border-color: var(--purple); background: #f5f0ff; }
+    .chapter-card .name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .chapter-card .count { font-size: 12px; color: var(--text-muted); }
+
+    /* ── 메인 화면 ── */
+    #mainScreen { display: none; }
+    .top-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    }
+    #backToGridBtn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #currentChapterLabel {
+      flex: 1;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    #langBadge {
+      font-size: 12px;
+      color: var(--purple);
+      background: #f0e9ff;
+      padding: 6px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+      cursor: pointer;
+      border: none;
+    }
+    .stats-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .stat-box {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-box .num { font-size: 22px; font-weight: 700; color: var(--purple); }
+    .stat-box .label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .activity-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .activity-tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #1a1a2e;
+    }
+    .activity-tile:hover { border-color: var(--purple); background: #f5f0ff; }
+    .activity-icon { font-size: 24px; }
+
+    .back-link {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .back-link:hover { color: var(--purple); }
+
+    .tab-nav { position: relative; margin-bottom: 16px; }
+    .tab-nav-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chevron { font-size: 12px; color: var(--text-muted); }
+    .tab-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      overflow: hidden;
+      z-index: 20;
+      min-width: 160px;
+    }
+    .tab-menu.show { display: block; }
+    .tab-menu button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 10px 14px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .tab-menu button:hover { background: #f5f0ff; }
+
+    .pdf-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .pdf-btn {
+      flex: 1;
+      background: #1a1a2e;
+      color: white;
+      border: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .pdf-btn:hover { opacity: 0.9; }
+
+    .flash-counters {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .flash-badge {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid;
+    }
+    .flash-badge.learning { color: #e8590c; border-color: #ffd8a8; background: #fff4e6; }
+    .flash-badge.known { color: #2f9e44; border-color: #b7e4c7; background: #eaf7ee; }
+
+    .donut {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .donut::before {
+      content: '';
+      position: absolute;
+      width: 68px; height: 68px;
+      background: var(--bg);
+      border-radius: 50%;
+    }
+    .donut-text {
+      position: relative;
+      z-index: 1;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot.known { background: #2f9e44; }
+    .dot.learning { background: #e8590c; }
+    .dot.remain { background: var(--border); }
+
+    #bigCard {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 30px 20px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin-bottom: 10px;
+      cursor: pointer;
+      position: relative;
+    }
+    .card-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 30px 20px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin-bottom: 10px;
+      cursor: pointer;
+      position: relative;
+    }
+    #bigSpeakBtn {
+      position: absolute;
+      top: 14px; left: 14px;
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; font-size: 14px;
+    }
+    .card-speak-btn {
+      position: absolute;
+      top: 14px; left: 14px;
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; font-size: 14px;
+    }
+    #bigKo { font-size: 24px; font-weight: 600; }
+    .card-ko { font-size: 24px; font-weight: 600; }
+    #bigTr {
+      display: none;
+      margin-top: 14px;
+      font-size: 20px;
+      color: #333;
+    }
+    #bigTr.show { display: block; }
+    .card-tr {
+      display: none;
+      margin-top: 14px;
+      font-size: 20px;
+      color: #333;
+    }
+    .card-tr.show { display: block; }
+    #bigEmoji { font-size: 40px; margin-top: 6px; display:none; }
+    #bigEmoji.show { display: block; }
+    .card-emoji { font-size: 40px; margin-top: 6px; display:none; }
+    .card-emoji.show { display: block; }
+
+    .card-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ctrl-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    /* 버튼 아래 설명 글자 */
+    .ctrl-btn { position: relative; }
+    .ctrl-btn[data-label]::after {
+      content: attr(data-label);
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 10px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .card-controls { gap: 24px !important; padding-bottom: 30px !important; }
+    .ctrl-btn.x { color: #e5484d; border-color: #f3c9c9; }
+    .ctrl-btn.check { color: #2f9e44; border-color: #b7e4c7; }
+    #cardCounter { font-size: 13px; color: var(--text-muted); min-width: 50px; text-align: center; }
+
+    .deck-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .deck-header p { font-size: 13px; color: var(--text-muted); }
+    #pdfBtn {
+      background: #1a1a2e; color: white; border: none;
+      padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+
+    .card-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      position: relative;
+    }
+    .card-cell {
+      background: var(--surface);
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 16px;
+      position: relative;
+    }
+    .ko-cell { gap: 8px; font-weight: 500; }
+    .speak-btn {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; flex-shrink: 0; font-size: 12px;
+    }
+    .tr-cell {
+      cursor: pointer;
+      filter: blur(5px);
+      transition: filter 0.15s ease;
+    }
+    .tr-cell.revealed { filter: none; }
+    .tr-cell:hover { filter: none; }
+    .learned-dot {
+      position: absolute;
+      top: 8px; right: 10px;
+      color: #2f9e44;
+      font-size: 14px;
+      display: none;
+    }
+    .learned-dot.show { display: block; }
+
+    .card-row.current-row::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 4px solid var(--purple);
+      border-radius: 10px;
+      pointer-events: none;
+      z-index: 5;
+    }
   </style>
 </head>
 <body>
-  <iframe id="app" allow="autoplay; clipboard-write"></iframe>
+  <div class="container">
+
+    <!-- 카카오톡 안에서 열렸을 때: 외부 브라우저로 열기 안내 -->
+    <div id="kakaoBanner" style="display:none; margin:0 52px 16px 0; padding:12px 14px; border-radius:12px; background:#fee500; color:#191919; font-size:13px; line-height:1.4;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="flex:1;">
+          <b>Open in your browser</b><br>
+          <span style="font-size:12px;">The back button may close the app in KakaoTalk.</span>
+        </div>
+        <a id="kakaoOpenBtn" target="_top" style="background:#191919; color:#fff; text-decoration:none; padding:8px 12px; border-radius:8px; font-weight:600; white-space:nowrap;">Open ↗</a>
+        <button onclick="dismissKakaoBanner()" style="background:none; border:none; font-size:16px; cursor:pointer; color:#191919;">✕</button>
+      </div>
+    </div>
+
+    <!-- 1. 코드 입력 게이트 -->
+    <div id="gateScreen" class="center-screen">
+      <h2>EasyKoreanConversation</h2>
+      <p>Enter this month's member code<br>(check the members-only post)</p>
+      <input id="codeInput" type="text" placeholder="Enter code" />
+      <div id="gateError"></div>
+      <button class="btn" onclick="submitCode()">Enter</button>
+    </div>
+
+    <!-- 2. 언어 선택 화면 -->
+    <div id="langScreen" class="center-screen" style="display:none;">
+      <h2>Choose your language</h2>
+      <p>언어를 선택해주세요 / Chọn ngôn ngữ / 言語を選択</p>
+      <div class="lang-list">
+        <button class="lang-btn" onclick="selectLang('en')">English</button>
+        <button class="lang-btn" onclick="selectLang('vi')">Tiếng Việt</button>
+        <button class="lang-btn" onclick="selectLang('ja')">日本語</button>
+        <button class="lang-btn" onclick="selectLang('ru')">Русский</button>
+        <button class="lang-btn" onclick="selectLang('th')">ภาษาไทย</button>
+      </div>
+    </div>
+
+    <!-- 3. 챕터 그리드 화면 -->
+    <div id="chapterGridScreen">
+      <div class="grid-top">
+        <h3 id="vocabularyTitle" style="margin:0;">Episode</h3>
+        <button id="langBadgeGrid" onclick="backToLangScreen()" title="Change language"></button>
+      </div>
+      <input id="chapterSearch" type="text" placeholder="Search Episodes... (e.g. ep35)" oninput="renderChapterGrid()" />
+      <div id="chapterGridContainer"></div>
+    </div>
+
+    <!-- 4. 메인 화면 -->
+    <div id="mainScreen">
+      <div class="top-row">
+        <button id="backToGridBtn" onclick="backToChapterGrid()">← Chapters</button>
+        <div id="currentChapterLabel"></div>
+        <button id="langBadge" onclick="backToLangScreen()" title="Change language"></button>
+      </div>
+
+      <div class="activity-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+        <button class="activity-tile" onclick="openVocabScreen()">
+          <span class="activity-icon">📚</span>
+          <span id="tileVocab">단어장</span>
+        </button>
+        <button class="activity-tile" onclick="startActivity('wordcard')">
+          <span class="activity-icon">🗂️</span>
+          <span id="tileWordcard">낱말카드</span>
+        </button>
+        <button class="activity-tile" onclick="startActivity('study')">
+          <span class="activity-icon">📖</span>
+          <span id="tileStudy">학습하기</span>
+        </button>
+        <button class="activity-tile" onclick="startActivity('match')">
+          <span class="activity-icon">🎮</span>
+          <span id="tileMatch">카드 맞추기</span>
+        </button>
+      </div>
+
+      <button id="youtubeBtn" class="pdf-btn" style="display:none; width:100%; margin-top:16px; background:#e5484d;" onclick="openYoutube()">▶ Watch on YouTube</button>
+
+      <button id="weakReviewBtn" class="pdf-btn" style="display:none; width:100%; margin-top:12px; background:#e8590c;" onclick="startWeakReview()"></button>
+
+      <div class="pdf-row">
+        <button id="scriptPdfBtn" class="pdf-btn" onclick="downloadScriptPdf()">📄 Download Script PDF</button>
+        <button id="vocabPdfBtn" class="pdf-btn" onclick="downloadPdf()">📗 Download Vocabulary PDF</button>
+      </div>
+    </div>
+
+    <!-- 4-vocab. 단어장(Learn) 화면 (미니 낱말카드 + 전체 단어 리스트) -->
+    <div id="vocabScreen" style="display:none;">
+      <div class="top-row">
+        <button class="back-link" onclick="closeVocabScreen()">← Back</button>
+      </div>
+
+      <div id="bigCardMini" class="card-box" onclick="toggleMiniReveal()">
+        <button id="bigSpeakMini" class="card-speak-btn" onclick="event.stopPropagation(); speakMini()">🔊</button>
+        <div id="bigKoMini" class="card-ko"></div>
+        <div id="bigTrMini" class="card-tr"></div>
+        <div id="bigEmojiMini" class="card-emoji">📘</div>
+      </div>
+      <div class="card-controls">
+        <button class="ctrl-btn" data-ctrl="prev" onclick="goMini(-1)">◀</button>
+        <button class="ctrl-btn x" data-ctrl="dontKnow" onclick="markMini(false)">✕</button>
+        <span id="cardCounterMini">1 / 1</span>
+        <button class="ctrl-btn check" data-ctrl="know" onclick="markMini(true)">✓</button>
+        <button class="ctrl-btn" data-ctrl="next" onclick="goMini(1)">▶</button>
+        <button class="ctrl-btn" data-ctrl="shuffle" onclick="shuffleMini()" title="순서 섞기">🔀</button>
+      </div>
+
+      <div class="deck-header">
+        <p id="deckCount">Terms in this deck</p>
+      </div>
+
+      <div id="cardList"></div>
+    </div>
+
+    <!-- 4-0. 학습 범위 선택 화면 (단어 수가 많은 챕터일 때만 노출) -->
+    <div id="chunkPickScreen" style="display:none;">
+      <div class="top-row">
+        <button class="back-link" onclick="closeChunkPicker()">← Back</button>
+      </div>
+      <h3 id="chunkPickTitle" style="margin-bottom:16px;"></h3>
+      <div id="chunkPickList" class="lang-list" style="width:100%; max-width:320px;"></div>
+    </div>
+
+    <!-- 4-1. 낱말카드(플래시카드) 전체 화면 -->
+    <div id="flashcardScreen" style="display:none;">
+      <div class="top-row">
+        <button class="back-link" onclick="closeFlashcardScreen()">← Back</button>
+      </div>
+
+      <div id="flashCardBody">
+        <div class="stats-row">
+          <div class="stat-box"><div class="num" id="flashLearnedNum">0</div><div class="label" id="statLabelLearned">Learned</div></div>
+          <div class="stat-box"><div class="num" id="flashStillLearningNum">0</div><div class="label" id="statLabelStillLearning">Still learning</div></div>
+          <div class="stat-box"><div class="num" id="flashToLearnNum">0</div><div class="label" id="statLabelToLearn">To learn</div></div>
+        </div>
+
+        <div id="flashGuide" style="margin:0 0 10px; font-size:13px; color:var(--text-muted); text-align:center;"></div>
+        <div id="bigCard" onclick="toggleBigReveal()">
+          <button id="bigSpeakBtn" onclick="event.stopPropagation(); speakCurrent()">🔊</button>
+          <div id="bigKo"></div>
+          <div id="bigTr"></div>
+          <div id="bigEmoji">📘</div>
+        </div>
+        <div class="card-controls">
+          <button class="ctrl-btn" data-ctrl="prev" onclick="goCard(-1)">◀</button>
+          <button class="ctrl-btn x" data-ctrl="dontKnow" onclick="flashMark(false)">✕</button>
+          <span id="cardCounter">1 / 1</span>
+          <button class="ctrl-btn check" data-ctrl="know" onclick="flashMark(true)">✓</button>
+          <button class="ctrl-btn" data-ctrl="next" onclick="goCard(1)">▶</button>
+          <button class="ctrl-btn" data-ctrl="undo" onclick="undoLastMark()" title="되돌리기">↩</button>
+          <button class="ctrl-btn" data-ctrl="shuffle" onclick="shuffleCards()" title="순서 섞기">🔀</button>
+        </div>
+      </div>
+
+      <!-- 결과 화면 -->
+      <div id="flashResultsScreen" style="display:none;">
+        <h3 id="flashResultTitle" style="margin-bottom:20px;"></h3>
+        <div style="display:flex; gap:24px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:20px;">
+            <div id="flashDonut" class="donut"><span id="flashDonutText" class="donut-text"></span></div>
+          </div>
+          <div style="flex:1; min-width:180px;">
+            <div class="result-row"><span class="dot known"></span><span id="resultKnownLabel">알고 있음</span> <b id="resultKnown" style="margin-left:auto;"></b></div>
+            <div class="result-row"><span class="dot learning"></span><span id="resultLearningLabel">학습 중</span> <b id="resultLearning" style="margin-left:auto;"></b></div>
+            <div class="result-row"><span class="dot remain"></span><span id="resultRemainLabel">남은 단어</span> <b id="resultRemain" style="margin-left:auto;">0</b></div>
+          </div>
+        </div>
+
+        <p id="nextStepLabel" style="font-size:13px; font-weight:600; color:var(--text-muted); margin:24px 0 8px;">다음 단계</p>
+        <button id="reviewLearningBtn" class="btn" style="display:none; width:auto; padding:10px 20px; margin:0 auto 8px; background:#1a1a2e;" onclick="reviewStillLearning()"></button>
+        <button id="restartFlashBtn" style="display:block; width:auto; margin:0 auto 40px; background:var(--surface); color:#1a1a2e; border:1px solid var(--border); padding:10px 20px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer;" onclick="startFlashRound(activeItems)">낱말카드 재시작</button>
+        <div id="flashChunkNavContainer" style="margin-bottom:22px;"></div>
+        <button id="practiceFromResultsBtn" class="btn" style="display:block; width:auto; padding:10px 20px; margin:0 auto 8px; background:#1a1a2e;" onclick="practiceFromResults()">🔄 문제로 연습하기</button>
+      </div>
+    </div>
+
+    <!-- 5. 카드 맞추기 게임 화면 -->
+    <div id="matchScreen" style="display:none;">
+      <div class="top-row">
+        <button class="back-link" onclick="closeMatchGame()">← Back</button>
+        <div style="flex:1; text-align:center; font-weight:600;" id="matchTimer">0.0</div>
+        <div style="width:70px;"></div>
+      </div>
+      <div id="matchGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px;"></div>
+      <div id="matchDone" style="display:none; text-align:center; margin-top:20px;">
+        <h3 id="matchDoneTitle">🎉 완료!</h3>
+        <p id="matchResultText"></p>
+        <div id="matchChunkNavContainer"></div>
+        <button id="matchPlayAgainBtn" class="btn" onclick="openMatchGame(activeItems)">다시 하기</button>
+      </div>
+    </div>
+
+    <!-- 6-0. 퀴즈 종류 선택 화면 -->
+    <div id="quizModeScreen" style="display:none;">
+      <div class="top-row">
+        <button class="back-link" onclick="closeQuizModePicker()">← Back</button>
+      </div>
+      <h3 id="quizModeTitle" style="margin-bottom:16px;"></h3>
+      <div class="lang-list" style="width:100%; max-width:320px;">
+        <button class="lang-btn" id="qmBtn_m2k" onclick="startQuiz('m2k')"></button>
+        <button class="lang-btn" id="qmBtn_k2m" onclick="startQuiz('k2m')"></button>
+        <button class="lang-btn" id="qmBtn_listen" onclick="startQuiz('listen')"></button>
+      </div>
+    </div>
+
+    <!-- 6. 학습하기(Learn) 모드 -->
+    <div id="learnScreen" style="display:none;">
+      <div class="top-row">
+        <button class="back-link" onclick="closeLearnMode()">← Back</button>
+      </div>
+
+      <div class="top-row" style="align-items:center;">
+        <div style="flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
+          <div id="learnProgressBar" style="height:100%; width:0%; background:var(--purple); transition:width 0.2s;"></div>
+        </div>
+        <span id="learnCounter" style="font-size:13px; color:var(--text-muted); min-width:40px; text-align:right;">0/0</span>
+      </div>
+
+      <div id="quizGuide" style="margin:16px 0 0; padding:12px 14px; border-radius:10px; background:var(--surface); border:1px solid var(--border); font-size:13px; line-height:1.5; color:var(--text-muted);"></div>
+
+      <div style="margin: 20px 0 10px;">
+        <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-muted); margin-bottom:6px;">
+          <span id="learnWordLabel">단어</span>
+          <button id="learnSpeakBtn" onclick="speak(learnQueue[learnPos].ko)" style="width:26px; height:26px; border-radius:50%; border:1px solid var(--border); background:var(--surface); cursor:pointer; font-size:12px;">🔊</button>
+        </div>
+        <p id="learnWord" style="font-size:26px; font-weight:600; margin:0;"></p>
+      </div>
+
+      <p id="chooseAnswerLabel" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">정답을 고르세요</p>
+      <div id="learnOptions" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
+        <button class="back-link" onclick="closeLearnMode()">← Back</button>
+        <button id="dontKnowBtn" onclick="skipLearnItem()" style="background:none; border:none; color:var(--purple); font-size:13px; text-decoration:underline; cursor:pointer;">모르시겠어요?</button>
+      </div>
+
+      <div id="learnDone" style="display:none; text-align:center; margin-top:30px;">
+        <h3 id="learnDoneTitle">🎉 완료!</h3>
+        <p id="learnResultText"></p>
+        <div id="learnMissedBox" style="display:none; text-align:left; max-width:420px; margin:0 auto 20px;">
+          <p id="learnMissedTitle" style="font-size:13px; font-weight:600; color:var(--text-muted); margin:0 0 8px;"></p>
+          <div id="learnMissedList"></div>
+        </div>
+        <div id="learnChunkNavContainer"></div>
+        <button id="learnPlayAgainBtn" class="btn" onclick="startQuiz(learnMode)">다시 하기</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .match-tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 8px;
+      font-size: 13px;
+      text-align: center;
+      cursor: pointer;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .match-tile.selected { border-color: var(--purple); background: #f5f0ff; }
+    .match-tile.correct { border-color: #2f9e44; background: #eaf7ee; color: #2f9e44; visibility: hidden; }
+    .match-tile.wrong { border-color: #e5484d; background: #fdeaea; }
+  </style>
+
   <script>
-    const APP = 'https://script.google.com/macros/s/AKfycbwaD9mC-NYs0XxX2r-xReanCcr7ejW5JfXIvHYkZHBG2zSpkcX1b47Dz3SdgJp7p7iN/exec';
-    document.getElementById('app').src = APP + location.search; // ?lang=vi 등 그대로 전달
+    // [진단용] 오류가 나면 화면 아래에 빨간 글씨로 표시
+    function showDebugError(where, e) {
+      // 화면에는 표시하지 않고 콘솔에만 기록
+      try { console.error('[' + where + ']', e); } catch (_) {}
+    }
+    function showDebugInfo(msg) { /* 필요하면 showDebugError('info', msg); 로 바꿔서 확인 */ }
+    window.addEventListener('error', ev => showDebugError('error', ev.message + ' (line ' + ev.lineno + ')'));
+
+    // ── Apps Script 서버 주소 (배포 관리에 나오는 /exec 주소) ──
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwaD9mC-NYs0XxX2r-xReanCcr7ejW5JfXIvHYkZHBG2zSpkcX1b47Dz3SdgJp7p7iN/exec';
+
+    function api(action, params) {
+      return fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(Object.assign({ action: action }, params || {}))
+      }).then(r => r.json());
+    }
+
+    let allData = {};
+    let allLinks = {}; // 에피소드별 유튜브 링크
+    let currentChapter = '';
+    let currentLang = 'en';
+    let currentItems = [];
+    let learnedSet = new Set();
+    let cardIndex = 0;
+
+    // ── 학습 범위 나누기 (단어가 많은 챕터는 한 번에 너무 많으면 부담스러우니 15개씩 나눔) ──
+    const CHUNK_SIZE = 15;
+    let pendingActivityType = null;
+    let currentChunks = [];
+    let currentChunkIndex = -1; // 지금 진행 중인 청크 번호 (0부터), 청크로 나뉘지 않았으면 -1
+    let activeItems = []; // 지금 진행 중인 활동(낱말카드/학습하기/카드맞추기)이 쓰고 있는 단어 목록
+
+    function chunkItems(items, size) {
+      const chunks = [];
+      for (let i = 0; i < items.length; i += size) {
+        chunks.push(items.slice(i, i + size));
+      }
+      return chunks;
+    }
+
+    // 활동 타일(낱말카드/학습하기/카드맞추기) 클릭 시 진입점
+    function startActivity(type) {
+      pendingActivityType = type;
+      // 범위(1-15, 16-30) 나누지 않고 전체 단어로 바로 시작
+      currentChunks = [];
+      currentChunkIndex = -1;
+      launchActivity(type, currentItems);
+    }
+
+    function showChunkPicker() {
+      currentChunks = chunkItems(currentItems, CHUNK_SIZE);
+      document.getElementById('chunkPickTitle').textContent = T().chunkPickTitle;
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('chunkPickScreen').style.display = 'block';
+
+      const list = document.getElementById('chunkPickList');
+      list.innerHTML = '';
+      currentChunks.forEach((chunk, i) => {
+        const start = i * CHUNK_SIZE + 1;
+        const end = i * CHUNK_SIZE + chunk.length;
+        const btn = document.createElement('button');
+        btn.className = 'lang-btn';
+        btn.textContent = start + '–' + end + ' (' + chunk.length + ')';
+        btn.onclick = () => pickChunk(i);
+        list.appendChild(btn);
+      });
+    }
+
+    function pickChunk(i) {
+      const items = currentChunks[i];
+      currentChunkIndex = i;
+      const start = i * CHUNK_SIZE + 1;
+      const end = i * CHUNK_SIZE + items.length;
+      logEvent('pick_chunk', currentChapter + ' ' + start + '-' + end);
+      document.getElementById('chunkPickScreen').style.display = 'none';
+      launchActivity(pendingActivityType, items);
+    }
+
+    function closeChunkPicker() {
+      document.getElementById('chunkPickScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+    }
+
+    function launchActivity(type, items) {
+      activeItems = items;
+      if (type === 'wordcard') showBigCardSection(items);
+      else if (type === 'study') openLearnMode(items);
+      else if (type === 'match') openMatchGame(items);
+    }
+
+    // ── 학습 진행 상황 저장 (로그인 없이, 이 브라우저에만 저장됨) ──
+    function getProgressKey(chapterName) {
+      return 'ekc_progress_' + chapterName;
+    }
+
+    function saveProgress() {
+      if (!currentChapter) return;
+      try {
+        localStorage.setItem(getProgressKey(currentChapter), JSON.stringify(Array.from(learnedSet)));
+      } catch (e) {
+        // 저장 실패해도 앱 사용에는 지장 없도록 조용히 무시
+      }
+    }
+
+    // 학습 기록은 순서 번호가 아니라 "한국어 단어" 자체로 저장 (시트 순서가 바뀌어도 안전)
+    function loadProgress(chapterName) {
+      try {
+        const raw = localStorage.getItem(getProgressKey(chapterName));
+        if (!raw) return new Set();
+        const items = allData[chapterName] || [];
+        const saved = JSON.parse(raw).map(v => {
+          // 예전 방식(숫자 번호)으로 저장된 기록은 한국어 단어로 변환
+          if (typeof v === 'number') return items[v] ? items[v].ko : null;
+          return v;
+        }).filter(v => typeof v === 'string' && v);
+        return new Set(saved);
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    // ── 약한 단어(✕ 누른 단어) 저장 ──
+    function getWeakKey(chapterName) { return 'ekc_weak_' + chapterName; }
+
+    function loadWeak(chapterName) {
+      try {
+        const raw = localStorage.getItem(getWeakKey(chapterName));
+        return new Set(raw ? JSON.parse(raw) : []);
+      } catch (e) { return new Set(); }
+    }
+
+    function setWeak(ko, isWeak) {
+      if (!currentChapter || !ko) return;
+      const set = loadWeak(currentChapter);
+      if (isWeak) set.add(ko); else set.delete(ko);
+      try { localStorage.setItem(getWeakKey(currentChapter), JSON.stringify(Array.from(set))); } catch (e) {}
+      updateWeakButton();
+    }
+
+    function getWeakItems() {
+      const set = loadWeak(currentChapter);
+      return currentItems.filter(x => set.has(x.ko));
+    }
+
+    function updateWeakButton() {
+      const btn = document.getElementById('weakReviewBtn');
+      if (!btn) return;
+      const n = getWeakItems().length;
+      btn.style.display = n > 0 ? 'block' : 'none';
+      btn.textContent = T().weakReview(n);
+    }
+
+    function startWeakReview() {
+      const items = getWeakItems();
+      if (!items.length) return;
+      logEvent('weak_review', currentChapter + ' ' + items.length);
+      currentChunks = [];
+      currentChunkIndex = -1;
+      pendingActivityType = 'wordcard';
+      launchActivity('wordcard', items);
+    }
+
+    // ── 방문/클릭 로그 (익명 기기ID 기반) ──────────────
+    function getDeviceId() {
+      try {
+        let id = localStorage.getItem('ekc_device_id');
+        if (!id) {
+          id = 'dev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+          localStorage.setItem('ekc_device_id', id);
+        }
+        return id;
+      } catch (e) {
+        return 'unknown';
+      }
+    }
+
+    // 클릭할 때마다 보내지 않고 모아뒀다가 한 번에 전송 (서버 부담 줄이기)
+    let logQueue = [];
+    let logTimer = null;
+
+    function logEvent(eventName, detail) {
+      logQueue.push({ t: Date.now(), e: eventName, d: detail || '' });
+      if (logQueue.length >= 15) { flushLogs(); return; }
+      if (!logTimer) logTimer = setTimeout(flushLogs, 30000); // 30초마다
+    }
+
+    function flushLogs() {
+      clearTimeout(logTimer);
+      logTimer = null;
+      if (!logQueue.length) return;
+      const batch = logQueue;
+      logQueue = [];
+      try {
+        const body = JSON.stringify({ action: 'log', deviceId: getDeviceId(), events: batch });
+        const sent = navigator.sendBeacon &&
+          navigator.sendBeacon(API_URL, new Blob([body], { type: 'text/plain;charset=utf-8' }));
+        if (!sent) fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, keepalive: true }).catch(() => {});
+      } catch (e) {
+        // 로그 실패는 무시 (앱 사용에 영향 없어야 함)
+      }
+    }
+
+    // 앱을 닫거나 다른 앱으로 넘어갈 때 남은 기록 전송
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushLogs();
+    });
+
+    const LANG_LABELS = { en: 'English', vi: 'Tiếng Việt', ja: '日本語', ru: 'Русский', th: 'ภาษาไทย' };
+
+    // ── UI 텍스트 다국어 사전 ─────────────────────────
+    const UI_TEXT = {
+      en: {
+        ctrl: { prev: 'Prev', dontKnow: "Don't know", know: 'Know', next: 'Next', undo: 'Undo', shuffle: 'Shuffle' },
+        termsCount: (n) => n + ' terms',
+        weakReview: (n) => '🔁 Review weak words (' + n + ')',
+        missedTitle: (n) => 'Words to review (' + n + ')',
+        newRecord: '🏆 New best record!',
+        bestTime: (t) => '🏆 Best: ' + t + 's',
+        backChapters: '← Chapters',
+        vocabularyTitle: 'Episode',
+        searchPlaceholder: 'Search Episodes... (e.g. ep35)',
+        wordcard: 'Flashcards',
+        study: 'Quiz',
+        match: 'Matching',
+        vocabTile: 'Learn',
+        termsInDeck: (n) => 'Terms in this deck (' + n + ')',
+        scriptPdf: '📄 Download Script PDF',
+        vocabPdf: '📗 Download Vocabulary PDF',
+        back: '← Back',
+        statLearned: 'Learned',
+        statStillLearning: 'Still learning',
+        statToLearn: 'To learn',
+        resultKnown: 'Known',
+        resultLearning: 'Still learning',
+        resultRemain: 'Remaining',
+        nextStep: 'Next step',
+        practice: '🔄 Practice with quiz',
+        reviewCards: (n) => 'Study ' + n + ' cards',
+        restartFlash: 'Restart flashcards',
+        resultTitleDone: 'All done for today! Ready for the next chapter? 🎉',
+        resultTitleAlmost: "Almost there! Let's review a bit more 💪",
+        matchDoneTitle: '🎉 Complete!',
+        matchResultText: (t) => 'You matched them all in ' + t + 's!',
+        playAgain: 'Play again',
+        flashGuide: '💡 Tap the card to see the meaning. ✓ if you know it, ✕ if not.',
+        watchVideo: '▶ Watch on YouTube',
+        quizModeTitle: 'Choose a quiz type',
+        listenAgain: '🔊 Tap to listen again',
+        quizModes: {
+          m2k: { name: 'Meaning → Korean', label: 'Meaning', choose: 'Choose the matching Korean word', guide: '💡 Read the meaning and tap the Korean word that matches it. Get it right on the first try to score a point. Not sure? Tap "Don\'t know?" to see the answer.' },
+          k2m: { name: 'Korean → Meaning', label: 'Korean', choose: 'Choose the matching meaning', guide: '💡 Read the Korean word and tap its meaning. Get it right on the first try to score a point. Not sure? Tap "Don\'t know?" to see the answer.' },
+          listen: { name: '🎧 Listen → Korean', label: 'Listen', choose: 'Choose the word you heard', guide: '💡 Listen and tap the Korean word you heard. Tap 🔊 to hear it again. Not sure? Tap "Don\'t know?" to see the answer.' }
+        },
+        quizGuide: '💡 Read the meaning and tap the Korean word that matches it. Get it right on the first try to score a point. Not sure? Tap "Don\'t know?" to see the answer.',
+        learnWordLabel: 'Meaning',
+        chooseAnswer: 'Choose the matching Korean word',
+        dontKnow: "Don't know?",
+        learnDoneTitle: '🎉 Complete!',
+        learnResultText: (total, correct) => 'You got ' + correct + ' out of ' + total + ' correct!',
+        noResults: 'No chapters found.',
+        pdfFailVocab: 'Failed to generate the PDF.',
+        pdfFailScript: "This chapter's script isn't ready yet.",
+        pdfErrorGeneric: 'An error occurred while generating the PDF.',
+        chunkPickTitle: 'Choose a range to study',
+        nextChunkFlashcards: (n) => '🗂️ Go to Flash card ' + n,
+        nextChunkStudy: (n) => '📝 Quiz ' + n,
+        nextChunkMatch: (n) => '🎮 Match ' + n
+      },
+      vi: {
+        ctrl: { prev: 'Trước', dontKnow: 'Chưa biết', know: 'Đã biết', next: 'Tiếp', undo: 'Hoàn tác', shuffle: 'Xáo trộn' },
+        termsCount: (n) => n + ' từ',
+        weakReview: (n) => '🔁 Ôn từ chưa thuộc (' + n + ')',
+        missedTitle: (n) => 'Từ cần ôn lại (' + n + ')',
+        newRecord: '🏆 Kỷ lục mới!',
+        bestTime: (t) => '🏆 Kỷ lục: ' + t + ' giây',
+        backChapters: '← Chương',
+        vocabularyTitle: 'Episode',
+        searchPlaceholder: 'Tìm Episode... (vd: ep35)',
+        wordcard: 'Thẻ từ',
+        study: 'Trắc nghiệm',
+        match: 'Ghép thẻ',
+        vocabTile: 'Học',
+        termsInDeck: (n) => 'Số từ trong bộ này (' + n + ')',
+        scriptPdf: '📄 Tải kịch bản PDF',
+        vocabPdf: '📗 Tải từ vựng PDF',
+        back: '← Quay lại',
+        statLearned: 'Đã thuộc',
+        statStillLearning: 'Đang học',
+        statToLearn: 'Chưa học',
+        resultKnown: 'Đã thuộc',
+        resultLearning: 'Đang học',
+        resultRemain: 'Còn lại',
+        nextStep: 'Bước tiếp theo',
+        practice: '🔄 Luyện tập bằng câu hỏi',
+        reviewCards: (n) => 'Học ' + n + ' thẻ',
+        restartFlash: 'Học lại từ đầu',
+        resultTitleDone: 'Xong bài hôm nay! Sẵn sàng cho chương tiếp theo chưa? 🎉',
+        resultTitleAlmost: 'Sắp xong rồi! Ôn thêm chút nữa nhé 💪',
+        matchDoneTitle: '🎉 Hoàn thành!',
+        matchResultText: (t) => 'Bạn đã ghép xong trong ' + t + ' giây!',
+        playAgain: 'Chơi lại',
+        flashGuide: '💡 Chạm vào thẻ để xem nghĩa. Biết thì ✓, chưa biết thì ✕.',
+        watchVideo: '▶ Xem trên YouTube',
+        quizModeTitle: 'Chọn kiểu trắc nghiệm',
+        listenAgain: '🔊 Nhấn để nghe lại',
+        quizModes: {
+          m2k: { name: 'Nghĩa → Tiếng Hàn', label: 'Nghĩa', choose: 'Chọn từ tiếng Hàn đúng', guide: '💡 Đọc nghĩa rồi chọn từ tiếng Hàn phù hợp. Chọn đúng ngay lần đầu mới được tính điểm. Không chắc? Nhấn "Chưa biết?" để xem đáp án.' },
+          k2m: { name: 'Tiếng Hàn → Nghĩa', label: 'Tiếng Hàn', choose: 'Chọn nghĩa đúng', guide: '💡 Đọc từ tiếng Hàn rồi chọn nghĩa đúng. Chọn đúng ngay lần đầu mới được tính điểm. Không chắc? Nhấn "Chưa biết?" để xem đáp án.' },
+          listen: { name: '🎧 Nghe → Tiếng Hàn', label: 'Nghe', choose: 'Chọn từ bạn đã nghe', guide: '💡 Nghe rồi chọn từ tiếng Hàn bạn đã nghe. Nhấn 🔊 để nghe lại. Không chắc? Nhấn "Chưa biết?" để xem đáp án.' }
+        },
+        quizGuide: '💡 Đọc nghĩa rồi chọn từ tiếng Hàn phù hợp. Chọn đúng ngay lần đầu mới được tính điểm. Không chắc? Nhấn "Chưa biết?" để xem đáp án.',
+        learnWordLabel: 'Nghĩa',
+        chooseAnswer: 'Chọn từ tiếng Hàn đúng',
+        dontKnow: 'Chưa biết?',
+        learnDoneTitle: '🎉 Hoàn thành!',
+        learnResultText: (total, correct) => 'Bạn trả lời đúng ' + correct + '/' + total + ' câu!',
+        noResults: 'Không tìm thấy chương nào.',
+        pdfFailVocab: 'Tạo PDF thất bại.',
+        pdfFailScript: 'Kịch bản của chương này chưa sẵn sàng.',
+        pdfErrorGeneric: 'Đã xảy ra lỗi khi tạo PDF.',
+        chunkPickTitle: 'Chọn phạm vi để học',
+        nextChunkFlashcards: (n) => '🗂️ Thẻ từ ' + n,
+        nextChunkStudy: (n) => '📝 Trắc nghiệm ' + n,
+        nextChunkMatch: (n) => '🎮 Ghép thẻ ' + n
+      },
+      ja: {
+        ctrl: { prev: '前へ', dontKnow: 'わからない', know: 'わかる', next: '次へ', undo: '元に戻す', shuffle: 'シャッフル' },
+        termsCount: (n) => n + '語',
+        weakReview: (n) => '🔁 苦手な単語を復習 (' + n + ')',
+        missedTitle: (n) => '復習する単語 (' + n + ')',
+        newRecord: '🏆 自己ベスト更新！',
+        bestTime: (t) => '🏆 ベスト: ' + t + '秒',
+        backChapters: '← チャプター',
+        vocabularyTitle: 'Episode',
+        searchPlaceholder: 'Episodeを検索... (例: ep35)',
+        wordcard: '単語カード',
+        study: 'クイズ',
+        match: 'カード合わせ',
+        vocabTile: '学ぶ',
+        termsInDeck: (n) => 'このデッキの単語数 (' + n + ')',
+        scriptPdf: '📄 スクリプトPDFをダウンロード',
+        vocabPdf: '📗 単語PDFをダウンロード',
+        back: '← 戻る',
+        statLearned: '習得済み',
+        statStillLearning: '学習中',
+        statToLearn: '未学習',
+        resultKnown: '習得済み',
+        resultLearning: '学習中',
+        resultRemain: '残り',
+        nextStep: '次のステップ',
+        practice: '🔄 クイズで練習する',
+        reviewCards: (n) => (n + '枚のカードを学習する'),
+        restartFlash: '単語カードをやり直す',
+        resultTitleDone: '今日の分は完了！次のチャプターに進みましょうか？🎉',
+        resultTitleAlmost: 'もう少しです！もう少し復習しましょう 💪',
+        matchDoneTitle: '🎉 完了！',
+        matchResultText: (t) => (t + '秒で全部合わせました！'),
+        playAgain: 'もう一度',
+        flashGuide: '💡 カードをタップして意味を確認。わかれば ✓、わからなければ ✕。',
+        watchVideo: '▶ YouTubeで見る',
+        quizModeTitle: 'クイズの種類を選んでください',
+        listenAgain: '🔊 タップしてもう一度聞く',
+        quizModes: {
+          m2k: { name: '意味 → 韓国語', label: '意味', choose: '合う韓国語を選んでください', guide: '💡 意味を読んで、合う韓国語の単語を選びましょう。1回目で正解すると得点になります。わからないときは「わかりませんか？」を押すと答えが見られます。' },
+          k2m: { name: '韓国語 → 意味', label: '韓国語', choose: '合う意味を選んでください', guide: '💡 韓国語を読んで、合う意味を選びましょう。1回目で正解すると得点になります。わからないときは「わかりませんか？」を押すと答えが見られます。' },
+          listen: { name: '🎧 聞いて → 韓国語', label: '聞き取り', choose: '聞こえた単語を選んでください', guide: '💡 音声を聞いて、聞こえた韓国語を選びましょう。🔊でもう一度聞けます。わからないときは「わかりませんか？」を押すと答えが見られます。' }
+        },
+        quizGuide: '💡 意味を読んで、合う韓国語の単語を選びましょう。1回目で正解すると得点になります。わからないときは「わかりませんか？」を押すと答えが見られます。',
+        learnWordLabel: '意味',
+        chooseAnswer: '合う韓国語を選んでください',
+        dontKnow: 'わかりませんか？',
+        learnDoneTitle: '🎉 完了！',
+        learnResultText: (total, correct) => (total + '問中' + correct + '問正解しました！'),
+        noResults: 'チャプターが見つかりません。',
+        pdfFailVocab: 'PDFの生成に失敗しました。',
+        pdfFailScript: 'このチャプターのスクリプトはまだ準備されていません。',
+        pdfErrorGeneric: 'PDF生成中にエラーが発生しました。',
+        chunkPickTitle: '学習する範囲を選んでください',
+        nextChunkFlashcards: (n) => '🗂️ 単語カード ' + n,
+        nextChunkStudy: (n) => '📝 クイズ ' + n,
+        nextChunkMatch: (n) => '🎮 カード合わせ ' + n
+      },
+      ru: {
+        ctrl: { prev: 'Назад', dontKnow: 'Не знаю', know: 'Знаю', next: 'Далее', undo: 'Отменить', shuffle: 'Перемешать' },
+        termsCount: (n) => n + ' слов',
+        weakReview: (n) => '🔁 Повторить трудные слова (' + n + ')',
+        missedTitle: (n) => 'Слова для повторения (' + n + ')',
+        newRecord: '🏆 Новый рекорд!',
+        bestTime: (t) => '🏆 Рекорд: ' + t + ' сек',
+        backChapters: '← Эпизоды',
+        vocabularyTitle: 'Эпизод',
+        searchPlaceholder: 'Поиск эпизодов... (напр. ep35)',
+        wordcard: 'Карточки',
+        study: 'Тест',
+        match: 'Найди пару',
+        vocabTile: 'Учить',
+        termsInDeck: (n) => 'Слов в этой колоде (' + n + ')',
+        scriptPdf: '📄 Скачать сценарий PDF',
+        vocabPdf: '📗 Скачать словарь PDF',
+        back: '← Назад',
+        statLearned: 'Выучено',
+        statStillLearning: 'Учу',
+        statToLearn: 'Осталось',
+        resultKnown: 'Выучено',
+        resultLearning: 'Учу',
+        resultRemain: 'Осталось',
+        nextStep: 'Следующий шаг',
+        practice: '🔄 Пройти тест',
+        reviewCards: (n) => 'Учить ' + n + ' карточек',
+        restartFlash: 'Начать заново',
+        resultTitleDone: 'Всё готово на сегодня! Перейти к следующей главе? 🎉',
+        resultTitleAlmost: 'Почти готово! Давайте повторим ещё немного 💪',
+        matchDoneTitle: '🎉 Готово!',
+        matchResultText: (t) => 'Вы нашли все пары за ' + t + ' сек!',
+        playAgain: 'Играть снова',
+        flashGuide: '💡 Нажмите на карточку, чтобы увидеть значение. Знаете — ✓, нет — ✕.',
+        watchVideo: '▶ Смотреть на YouTube',
+        quizModeTitle: 'Выберите тип теста',
+        listenAgain: '🔊 Нажмите, чтобы послушать ещё раз',
+        quizModes: {
+          m2k: { name: 'Значение → Корейский', label: 'Значение', choose: 'Выберите подходящее корейское слово', guide: '💡 Прочитайте значение и выберите подходящее корейское слово. Балл засчитывается только с первой попытки. Не уверены? Нажмите «Не знаете?», чтобы увидеть ответ.' },
+          k2m: { name: 'Корейский → Значение', label: 'Корейский', choose: 'Выберите подходящее значение', guide: '💡 Прочитайте корейское слово и выберите его значение. Балл засчитывается только с первой попытки. Не уверены? Нажмите «Не знаете?», чтобы увидеть ответ.' },
+          listen: { name: '🎧 Аудирование → Корейский', label: 'Слушайте', choose: 'Выберите услышанное слово', guide: '💡 Послушайте и выберите корейское слово, которое услышали. Нажмите 🔊, чтобы послушать ещё раз. Не уверены? Нажмите «Не знаете?», чтобы увидеть ответ.' }
+        },
+        quizGuide: '💡 Прочитайте значение и выберите подходящее корейское слово. Балл засчитывается только с первой попытки. Не уверены? Нажмите «Не знаете?», чтобы увидеть ответ.',
+        learnWordLabel: 'Значение',
+        chooseAnswer: 'Выберите подходящее корейское слово',
+        dontKnow: 'Не знаете?',
+        learnDoneTitle: '🎉 Готово!',
+        learnResultText: (total, correct) => 'Правильно ' + correct + ' из ' + total + '!',
+        noResults: 'Эпизоды не найдены.',
+        pdfFailVocab: 'Не удалось создать PDF.',
+        pdfFailScript: 'Сценарий этой главы ещё не готов.',
+        pdfErrorGeneric: 'Произошла ошибка при создании PDF.',
+        chunkPickTitle: 'Выберите диапазон для изучения',
+        nextChunkFlashcards: (n) => '🗂️ Перейти к карточкам ' + n,
+        nextChunkStudy: (n) => '📝 Тест ' + n,
+        nextChunkMatch: (n) => '🎮 Найди пару ' + n
+      },
+      th: {
+        ctrl: { prev: 'ก่อนหน้า', dontKnow: 'ไม่รู้', know: 'รู้แล้ว', next: 'ถัดไป', undo: 'ย้อนกลับ', shuffle: 'สลับ' },
+        termsCount: (n) => n + ' คำ',
+        weakReview: (n) => '🔁 ทบทวนคำที่ยังจำไม่ได้ (' + n + ')',
+        missedTitle: (n) => 'คำที่ต้องทบทวน (' + n + ')',
+        newRecord: '🏆 สถิติใหม่!',
+        bestTime: (t) => '🏆 สถิติ: ' + t + ' วินาที',
+        backChapters: '← ตอน',
+        vocabularyTitle: 'ตอน',
+        searchPlaceholder: 'ค้นหาตอน... (เช่น ep35)',
+        wordcard: 'บัตรคำศัพท์',
+        study: 'แบบทดสอบ',
+        match: 'จับคู่',
+        vocabTile: 'เรียนรู้',
+        termsInDeck: (n) => 'คำศัพท์ในชุดนี้ (' + n + ')',
+        scriptPdf: '📄 ดาวน์โหลดสคริปต์ PDF',
+        vocabPdf: '📗 ดาวน์โหลดคำศัพท์ PDF',
+        back: '← กลับ',
+        statLearned: 'จำได้แล้ว',
+        statStillLearning: 'กำลังเรียนรู้',
+        statToLearn: 'เหลืออยู่',
+        resultKnown: 'จำได้แล้ว',
+        resultLearning: 'กำลังเรียนรู้',
+        resultRemain: 'เหลืออยู่',
+        nextStep: 'ขั้นตอนต่อไป',
+        practice: '🔄 ฝึกทำแบบทดสอบ',
+        reviewCards: (n) => 'เรียนรู้ ' + n + ' คำ',
+        restartFlash: 'เริ่มบัตรคำศัพท์ใหม่',
+        resultTitleDone: 'เสร็จแล้วสำหรับวันนี้! ไปตอนต่อไปกันไหม? 🎉',
+        resultTitleAlmost: 'ใกล้แล้ว! มาทบทวนอีกนิดกัน 💪',
+        matchDoneTitle: '🎉 เสร็จแล้ว!',
+        matchResultText: (t) => 'คุณจับคู่ได้ครบใน ' + t + ' วินาที!',
+        playAgain: 'เล่นอีกครั้ง',
+        flashGuide: '💡 แตะการ์ดเพื่อดูความหมาย รู้แล้วกด ✓ ไม่รู้กด ✕',
+        watchVideo: '▶ ดูบน YouTube',
+        quizModeTitle: 'เลือกประเภทแบบทดสอบ',
+        listenAgain: '🔊 แตะเพื่อฟังอีกครั้ง',
+        quizModes: {
+          m2k: { name: 'ความหมาย → เกาหลี', label: 'ความหมาย', choose: 'เลือกคำภาษาเกาหลีที่ตรงกัน', guide: '💡 อ่านความหมายแล้วเลือกคำภาษาเกาหลีที่ตรงกัน ตอบถูกในครั้งแรกจึงได้คะแนน ถ้าไม่แน่ใจ กด "ไม่รู้ใช่ไหม?" เพื่อดูคำตอบ' },
+          k2m: { name: 'เกาหลี → ความหมาย', label: 'ภาษาเกาหลี', choose: 'เลือกความหมายที่ตรงกัน', guide: '💡 อ่านคำภาษาเกาหลีแล้วเลือกความหมาย ตอบถูกในครั้งแรกจึงได้คะแนน ถ้าไม่แน่ใจ กด "ไม่รู้ใช่ไหม?" เพื่อดูคำตอบ' },
+          listen: { name: '🎧 ฟัง → เกาหลี', label: 'ฟัง', choose: 'เลือกคำที่ได้ยิน', guide: '💡 ฟังแล้วเลือกคำภาษาเกาหลีที่ได้ยิน กด 🔊 เพื่อฟังอีกครั้ง ถ้าไม่แน่ใจ กด "ไม่รู้ใช่ไหม?" เพื่อดูคำตอบ' }
+        },
+        quizGuide: '💡 อ่านความหมายแล้วเลือกคำภาษาเกาหลีที่ตรงกัน ตอบถูกในครั้งแรกจึงได้คะแนน ถ้าไม่แน่ใจ กด "ไม่รู้ใช่ไหม?" เพื่อดูคำตอบ',
+        learnWordLabel: 'ความหมาย',
+        chooseAnswer: 'เลือกคำภาษาเกาหลีที่ตรงกัน',
+        dontKnow: 'ไม่รู้ใช่ไหม?',
+        learnDoneTitle: '🎉 เสร็จแล้ว!',
+        learnResultText: (total, correct) => 'ตอบถูก ' + correct + ' จาก ' + total + ' ข้อ!',
+        noResults: 'ไม่พบตอนที่ค้นหา',
+        pdfFailVocab: 'สร้าง PDF ไม่สำเร็จ',
+        pdfFailScript: 'สคริปต์ของตอนนี้ยังไม่พร้อม',
+        pdfErrorGeneric: 'เกิดข้อผิดพลาดขณะสร้าง PDF',
+        chunkPickTitle: 'เลือกช่วงที่จะเรียนรู้',
+        nextChunkFlashcards: (n) => '🗂️ ไปที่บัตรคำศัพท์ ' + n,
+        nextChunkStudy: (n) => '📝 แบบทดสอบ ' + n,
+        nextChunkMatch: (n) => '🎮 จับคู่ ' + n
+      }
+    };
+
+    function T() {
+      return UI_TEXT[currentLang] || UI_TEXT.en;
+    }
+
+    // 화면에 보이는 고정 UI 라벨들을 현재 언어로 다시 그림
+    function applyUILabels() {
+      const t = T();
+      document.getElementById('backToGridBtn').textContent = t.backChapters;
+      document.getElementById('vocabularyTitle').textContent = t.vocabularyTitle;
+      document.getElementById('chapterSearch').placeholder = t.searchPlaceholder;
+      document.getElementById('tileWordcard').textContent = t.wordcard;
+      document.getElementById('tileStudy').textContent = t.study;
+      document.getElementById('tileMatch').textContent = t.match;
+      document.getElementById('tileVocab').textContent = t.vocabTile;
+      document.getElementById('scriptPdfBtn').textContent = t.scriptPdf;
+      document.getElementById('youtubeBtn').textContent = t.watchVideo;
+      document.getElementById('vocabPdfBtn').textContent = t.vocabPdf;
+      document.querySelectorAll('.back-link').forEach(el => {
+        if (el.id !== 'restartFlashBtn') el.textContent = t.back;
+      });
+      document.getElementById('statLabelLearned').textContent = t.statLearned;
+      document.getElementById('statLabelStillLearning').textContent = t.statStillLearning;
+      document.getElementById('statLabelToLearn').textContent = t.statToLearn;
+      document.getElementById('resultKnownLabel').textContent = t.resultKnown;
+      document.getElementById('resultLearningLabel').textContent = t.resultLearning;
+      document.getElementById('resultRemainLabel').textContent = t.resultRemain;
+      document.getElementById('nextStepLabel').textContent = t.nextStep;
+      document.getElementById('practiceFromResultsBtn').textContent = t.practice;
+      document.getElementById('restartFlashBtn').textContent = t.restartFlash;
+      document.getElementById('matchDoneTitle').textContent = t.matchDoneTitle;
+      document.getElementById('matchPlayAgainBtn').textContent = t.playAgain;
+      applyQuizModeLabels();
+      document.getElementById('flashGuide').textContent = t.flashGuide;
+      document.getElementById('dontKnowBtn').textContent = t.dontKnow;
+      document.getElementById('learnDoneTitle').textContent = t.learnDoneTitle;
+      document.getElementById('learnPlayAgainBtn').textContent = t.playAgain;
+      document.querySelectorAll('.ctrl-btn[data-ctrl]').forEach(b => {
+        const label = t.ctrl[b.dataset.ctrl];
+        b.dataset.label = label;
+        b.title = label;
+      });
+      if (document.getElementById('deckCount')) {
+        document.getElementById('deckCount').textContent = t.termsInDeck(currentItems.length);
+      }
+    }
+
+    function closeAllTabMenus() {
+      document.querySelectorAll('.tab-menu').forEach(m => m.classList.remove('show'));
+    }
+
+    function toggleTabMenu(id) {
+      const el = document.getElementById(id);
+      const isOpen = el.classList.contains('show');
+      closeAllTabMenus();
+      if (!isOpen) el.classList.add('show');
+    }
+
+    function goToCardTab() {
+      closeAllTabMenus();
+      document.getElementById('learnScreen').style.display = 'none';
+      document.getElementById('matchScreen').style.display = 'none';
+      document.getElementById('flashcardScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+    }
+
+    // 드롭다운 바깥 클릭하면 자동으로 닫기
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.tab-nav')) closeAllTabMenus();
+    });
+
+    function submitCode() {
+      const code = document.getElementById('codeInput').value;
+      const err = document.getElementById('gateError');
+      const btn = document.querySelector('#gateScreen .btn');
+      err.classList.add('loading');
+      err.innerHTML = '<span class="spinner"></span>Loading...';
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      const done = () => { err.classList.remove('loading'); btn.disabled = false; btn.style.opacity = ''; };
+      api('verify', { code: code })
+        .then(r => { done(); onCodeResult(r); })
+        .catch(() => {
+          done();
+          err.textContent = 'An error occurred. Please try again.';
+        });
+    }
+
+    function onCodeResult(result) {
+      if (!result.ok) {
+        document.getElementById('gateError').textContent = 'Incorrect code. Please check again.';
+        return;
+      }
+      if (!result.data || typeof result.data !== 'object' || !Object.keys(result.data).length) {
+        document.getElementById('gateError').textContent = 'No data received. Please try again later.';
+        return;
+      }
+      allData = result.data;
+      showDebugInfo('chapters: ' + Object.keys(allData).length);
+      allLinks = result.links || {};
+      setTimeout(syncNav, 0);
+      logEvent('code_verified');
+      document.getElementById('gateScreen').style.display = 'none';
+
+      const presetLang = window.PRESET_LANG;
+      if (presetLang && LANG_LABELS[presetLang]) {
+        selectLang(presetLang);
+      } else {
+        document.getElementById('langScreen').style.display = 'flex';
+      }
+    }
+
+    function selectLang(lang) {
+      currentLang = lang;
+      logEvent('select_lang', lang);
+      document.getElementById('langScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('chapterGridScreen').style.display = 'block';
+      document.getElementById('langBadgeGrid').textContent = '🌐 ' + LANG_LABELS[lang] + ' ▾';
+      document.getElementById('langBadge').textContent = '🌐 ' + LANG_LABELS[lang] + ' ▾';
+      try { applyUILabels(); } catch (e) { showDebugError('applyUILabels', e); }
+      renderChapterGrid();
+    }
+
+    function backToLangScreen() {
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('chapterGridScreen').style.display = 'none';
+      document.getElementById('langScreen').style.display = 'flex';
+    }
+
+    // 챕터명에서 뒤에 붙은 숫자를 떼어 "시리즈명"으로 그룹핑 (예: 편의점1, 편의점2 -> 편의점)
+    function getSeriesName(chapterName) {
+      return chapterName.replace(/\d+$/, '').trim() || chapterName;
+    }
+
+    function renderChapterGrid() {
+      try { renderChapterGridInner(); }
+      catch (e) {
+        // 오류가 나면 화면에 표시 (원인 확인용)
+        document.getElementById('chapterGridContainer').innerHTML =
+          '<p style="color:#e5484d; font-size:13px;">Error: ' + String(e && e.message || e) + '</p>';
+      }
+    }
+
+    function renderChapterGridInner() {
+      const query = (document.getElementById('chapterSearch').value || '').toLowerCase();
+      const container = document.getElementById('chapterGridContainer');
+      container.innerHTML = '';
+
+      const series = {};
+      Object.keys(allData).forEach(ch => {
+        if (query && !ch.toLowerCase().includes(query)) return;
+        const s = getSeriesName(ch);
+        if (!series[s]) series[s] = [];
+        series[s].push(ch);
+      });
+
+      if (Object.keys(series).length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">' + T().noResults + '</p>';
+        return;
+      }
+
+      // 숫자를 인식하는 자연 정렬 (ep35 < ep36, 편의점1 < 편의점2 < 편의점10 순서로 정렬)
+      const naturalSort = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+
+      const sortedSeriesNames = Object.keys(series).sort(naturalSort);
+
+      sortedSeriesNames.forEach(seriesName => {
+        const title = document.createElement('div');
+        title.className = 'series-title';
+        title.textContent = seriesName;
+        container.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'chapter-grid';
+        series[seriesName].sort(naturalSort).forEach(ch => {
+          const card = document.createElement('div');
+          card.className = 'chapter-card';
+          card.onclick = () => chooseChapter(ch);
+          card.innerHTML = '<div class="name">' + ch + '</div><div class="count">' + T().termsCount(allData[ch].length) + '</div>' + progressHtml(ch);
+          grid.appendChild(card);
+        });
+        container.appendChild(grid);
+      });
+    }
+
+    // 챕터 카드에 "12/30 ✓" + 진행 막대
+    function progressHtml(ch) {
+      const total = (allData[ch] || []).length;
+      if (!total) return '';
+      const words = new Set(allData[ch].map(x => x.ko));
+      const done = Array.from(loadProgress(ch)).filter(k => words.has(k)).length;
+      const pct = Math.round(done / total * 100);
+      const color = done === total ? '#2f9e44' : 'var(--purple)';
+      return '<div style="display:flex; align-items:center; gap:6px; margin-top:8px;">' +
+        '<div style="flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden;">' +
+        '<div style="width:' + pct + '%; height:100%; background:' + color + ';"></div></div>' +
+        '<span style="font-size:12px; color:' + (done ? color : 'var(--text-muted)') + '; white-space:nowrap;">' + done + '/' + total + ' ✓</span></div>';
+    }
+
+    function chooseChapter(chapterName) {
+      currentChapter = chapterName;
+      currentItems = allData[chapterName] || [];
+      learnedSet = loadProgress(chapterName);
+      activeItems = currentItems;
+      currentChunks = [];
+      currentChunkIndex = -1;
+      cardIndex = 0;
+      miniIndex = 0;
+
+      document.getElementById('chapterGridScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+      document.getElementById('currentChapterLabel').textContent = chapterName;
+      document.getElementById('youtubeBtn').style.display = allLinks[chapterName] ? 'block' : 'none';
+      updateWeakButton();
+
+      renderMiniCard();
+      renderList();
+    }
+
+    function openYoutube() {
+      const url = allLinks[currentChapter];
+      if (!url) return;
+      logEvent('open_youtube', currentChapter);
+      window.open(url, '_blank');
+    }
+
+    function backToChapterGrid() {
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('chapterGridScreen').style.display = 'block';
+      renderChapterGrid();
+    }
+
+    // ── 단어장 화면 (미니 낱말카드 + 전체 리스트 + PDF) ──
+    function openVocabScreen() {
+      logEvent('open_vocab', currentChapter);
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('vocabScreen').style.display = 'block';
+      renderMiniCard();
+      renderList();
+    }
+
+    function closeVocabScreen() {
+      updateWeakButton();
+      document.getElementById('vocabScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+    }
+
+    // ── 메인 화면용 미니 낱말카드 (블러 리스트와 직접 연동) ──
+    let miniIndex = 0;
+
+    function renderMiniCard() {
+      const item = currentItems[miniIndex];
+      if (!item) return;
+      document.getElementById('bigKoMini').textContent = item.ko;
+      document.getElementById('bigTrMini').textContent = item[currentLang] || item.en;
+      document.getElementById('bigEmojiMini').textContent = item.emoji || '';
+      document.getElementById('bigTrMini').classList.remove('show');
+      document.getElementById('bigEmojiMini').classList.remove('show');
+      document.getElementById('cardCounterMini').textContent = (miniIndex + 1) + ' / ' + currentItems.length;
+      highlightCurrentRow();
+    }
+
+    // 현재 미니카드 단어에 해당하는 아래 리스트 줄을 하이라이트 (자동 스크롤은 하지 않음)
+    function highlightCurrentRow() {
+      document.querySelectorAll('#cardList .card-row').forEach(r => r.classList.remove('current-row'));
+      const row = document.querySelector('#cardList .card-row[data-idx="' + miniIndex + '"]');
+      if (row) row.classList.add('current-row');
+    }
+
+    function toggleMiniReveal() {
+      const isShown = document.getElementById('bigTrMini').classList.toggle('show');
+      document.getElementById('bigEmojiMini').classList.toggle('show');
+      // 카드를 눌러 뜻이 보일 때 단어를 자동으로 읽어줌
+      if (isShown) speakMini();
+    }
+
+    function speakMini() {
+      const item = currentItems[miniIndex];
+      if (item) speak(item.ko);
+    }
+
+    function goMini(delta) {
+      if (!currentItems.length) return;
+      miniIndex = (miniIndex + delta + currentItems.length) % currentItems.length;
+      renderMiniCard();
+    }
+
+    function markMini(isLearned) {
+      const item = currentItems[miniIndex];
+      if (!item) return;
+      if (isLearned) {
+        learnedSet.add(item.ko);
+      } else {
+        learnedSet.delete(item.ko);
+      }
+      saveProgress();
+      setWeak(item.ko, !isLearned);
+      renderList();
+      goMini(1);
+    }
+
+    // 순서만 섞고 학습 기록(✓)은 그대로 유지
+    function shuffleMini() {
+      for (let i = currentItems.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [currentItems[i], currentItems[j]] = [currentItems[j], currentItems[i]];
+      }
+      miniIndex = 0;
+      renderMiniCard();
+      renderList();
+    }
+
+    // ── 큰 카드 모드 (라운드 기반 - Quizlet 방식, 낱말카드 전체화면 전용) ──
+    let flashQueue = [];       // 이번 라운드에 나올 카드들
+    let flashPos = 0;
+    let flashKnownCount = 0;
+    let flashLearningCount = 0;
+    let flashLearningItems = []; // 이번 라운드에서 X 누른 카드들 (다음 라운드 복습용)
+    let flashResults = {};       // idx -> 'known' | 'learning' (같은 카드 중복 체크 방지용)
+    let flashHistory = [];       // 되돌리기용 기록 스택
+
+    function renderBigCard() {
+      const item = flashQueue[flashPos];
+      if (!item) return;
+      document.getElementById('bigKo').textContent = item.ko;
+      document.getElementById('bigTr').textContent = item[currentLang] || item.en;
+      document.getElementById('bigEmoji').textContent = item.emoji || '';
+      document.getElementById('bigTr').classList.remove('show');
+      document.getElementById('bigEmoji').classList.remove('show');
+      document.getElementById('cardCounter').textContent = (flashPos + 1) + ' / ' + flashQueue.length;
+    }
+
+    function toggleBigReveal() {
+      document.getElementById('bigTr').classList.toggle('show');
+      document.getElementById('bigEmoji').classList.toggle('show');
+    }
+
+    function speakCurrent() {
+      const item = flashQueue[flashPos];
+      if (item) speak(item.ko);
+    }
+
+    function goCard(delta) {
+      if (!flashQueue.length) return;
+      flashPos = (flashPos + delta + flashQueue.length) % flashQueue.length;
+      renderBigCard();
+    }
+
+    function updateFlashCounters() {
+      const answered = Object.keys(flashResults).length;
+      document.getElementById('flashLearnedNum').textContent = flashKnownCount;
+      document.getElementById('flashStillLearningNum').textContent = flashLearningCount;
+      document.getElementById('flashToLearnNum').textContent = flashQueue.length - answered;
+    }
+
+    function flashMark(isKnown) {
+      const idx = flashPos;
+      const item = flashQueue[idx];
+      const prevState = flashResults[idx];
+
+      // 이미 이 카드에 대해 답한 적 있으면, 이전 카운트를 먼저 되돌림 (중복 카운트 방지)
+      if (prevState === 'known') {
+        flashKnownCount--;
+      } else if (prevState === 'learning') {
+        flashLearningCount--;
+        const pos = flashLearningItems.lastIndexOf(item);
+        if (pos > -1) flashLearningItems.splice(pos, 1);
+      }
+
+      if (isKnown) {
+        flashKnownCount++;
+        flashResults[idx] = 'known';
+        learnedSet.add(item.ko);
+        saveProgress();
+        setWeak(item.ko, false);
+      } else {
+        flashLearningCount++;
+        flashResults[idx] = 'learning';
+        flashLearningItems.push(item);
+        setWeak(item.ko, true);
+      }
+      flashHistory.push({ idx, isKnown });
+
+      updateFlashCounters();
+      renderList();
+
+      flashPos++;
+      if (flashPos >= flashQueue.length) {
+        showFlashResults();
+      } else {
+        renderBigCard();
+      }
+    }
+
+    function undoLastMark() {
+      if (!flashHistory.length) return;
+      const last = flashHistory.pop();
+      const item = flashQueue[last.idx];
+
+      if (last.isKnown) {
+        flashKnownCount--;
+      } else {
+        flashLearningCount--;
+        const pos = flashLearningItems.lastIndexOf(item);
+        if (pos > -1) flashLearningItems.splice(pos, 1);
+      }
+      delete flashResults[last.idx];
+
+      flashPos = last.idx;
+      updateFlashCounters();
+      renderList();
+      renderBigCard();
+    }
+
+    function shuffleCards() {
+      for (let i = flashQueue.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [flashQueue[i], flashQueue[j]] = [flashQueue[j], flashQueue[i]];
+      }
+      flashPos = 0;
+      renderBigCard();
+    }
+
+    function showBigCardSection(items) {
+      logEvent('open_wordcard', currentChapter);
+      const sourceItems = items || activeItems || currentItems;
+      activeItems = sourceItems;
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('flashcardScreen').style.display = 'block';
+      startFlashRound(sourceItems);
+    }
+
+    function closeFlashcardScreen() {
+      updateWeakButton();
+      document.getElementById('flashcardScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+    }
+
+    function startFlashRound(items) {
+      flashQueue = items.slice();
+      flashPos = 0;
+      flashKnownCount = 0;
+      flashLearningCount = 0;
+      flashLearningItems = [];
+      flashResults = {};
+      flashHistory = [];
+      updateFlashCounters();
+      document.getElementById('flashResultsScreen').style.display = 'none';
+      document.getElementById('flashCardBody').style.display = 'block';
+      renderBigCard();
+    }
+
+    function showFlashResults() {
+      document.getElementById('flashCardBody').style.display = 'none';
+      document.getElementById('flashResultsScreen').style.display = 'block';
+
+      const total = flashKnownCount + flashLearningCount;
+      const percent = total > 0 ? Math.round((flashKnownCount / total) * 100) : 0;
+      const t = T();
+
+      document.getElementById('resultKnown').textContent = flashKnownCount;
+      document.getElementById('resultLearning').textContent = flashLearningCount;
+      document.getElementById('resultRemain').textContent = 0;
+
+      const donut = document.getElementById('flashDonut');
+      const donutText = document.getElementById('flashDonutText');
+      if (flashLearningCount === 0) {
+        donut.style.background = '#2f9e44';
+        donutText.textContent = '✓';
+        donutText.style.color = 'white';
+        document.getElementById('flashResultTitle').textContent = t.resultTitleDone;
+      } else {
+        donut.style.background = `conic-gradient(#2f9e44 0% ${percent}%, #e8590c ${percent}% 100%)`;
+        donutText.textContent = percent + '%';
+        donutText.style.color = '#1a1a2e';
+        document.getElementById('flashResultTitle').textContent = t.resultTitleAlmost;
+      }
+
+      const reviewBtn = document.getElementById('reviewLearningBtn');
+      if (flashLearningCount > 0) {
+        reviewBtn.style.display = 'block';
+        reviewBtn.textContent = t.reviewCards(flashLearningCount);
+      } else {
+        reviewBtn.style.display = 'none';
+      }
+
+      // 청크로 나뉜 챕터면, 다른 청크(이전/다음 모두)로 바로 이동할 수 있는 버튼들을 보여줌
+      renderChunkNav('flashChunkNavContainer', 'wordcard', t.nextChunkFlashcards);
+    }
+
+    // 완료 화면에 "다른 청크로 이동" 버튼들을 렌더링 (현재 청크는 제외하고 나머지 전부)
+    function renderChunkNav(containerId, type, labelFn) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      const nextIndex = currentChunkIndex + 1;
+      if (!(pendingActivityType === type && currentChunkIndex > -1 && nextIndex < currentChunks.length)) return;
+
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.style.cssText = 'display:block; width:auto; padding:10px 20px; margin:0 auto 6px;';
+      btn.textContent = labelFn(nextIndex + 1);
+      btn.onclick = () => goToChunk(type, nextIndex);
+      container.appendChild(btn);
+    }
+
+    function goToChunk(type, index) {
+      currentChunkIndex = index;
+      const items = currentChunks[index];
+      const start = index * CHUNK_SIZE + 1;
+      const end = index * CHUNK_SIZE + items.length;
+      logEvent('pick_chunk', currentChapter + ' ' + start + '-' + end);
+      if (type === 'wordcard') showBigCardSection(items);
+      else if (type === 'study') openLearnMode(items);
+      else if (type === 'match') openMatchGame(items);
+    }
+
+    function reviewStillLearning() {
+      startFlashRound(flashLearningItems);
+    }
+
+    function practiceFromResults() {
+      document.getElementById('flashcardScreen').style.display = 'none';
+      openLearnMode(activeItems);
+    }
+
+    // ── 하단 리스트 ──
+    function renderList() {
+      document.getElementById('deckCount').textContent = T().termsInDeck(currentItems.length);
+      const list = document.getElementById('cardList');
+      list.innerHTML = '';
+
+      currentItems.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'card-row';
+        row.dataset.idx = idx;
+
+        const koCell = document.createElement('div');
+        koCell.className = 'card-cell ko-cell';
+        koCell.innerHTML = '<button class="speak-btn" onclick="speak(\'' + item.ko.replace(/'/g, "\\'") + '\')">🔊</button><span>' + item.ko + '</span>';
+
+        const trCell = document.createElement('div');
+        const isLearned = learnedSet.has(item.ko);
+        trCell.className = 'card-cell tr-cell' + (isLearned ? ' revealed' : '');
+        trCell.textContent = item[currentLang] || item.en;
+
+        const dot = document.createElement('span');
+        dot.className = 'learned-dot' + (isLearned ? ' show' : '');
+        dot.textContent = '✓';
+        trCell.appendChild(dot);
+
+        trCell.onclick = () => {
+          // 뜻을 잠깐 보기만 함 (외움 ✓ 처리는 위 카드의 ✓ 버튼으로만)
+          trCell.classList.toggle('revealed');
+        };
+
+        row.appendChild(koCell);
+        row.appendChild(trCell);
+        list.appendChild(row);
+      });
+
+      highlightCurrentRow();
+      updateStats();
+    }
+
+    function updateStats() {
+      // 메인 화면에서는 Learned/Still learning/To learn 표시를 제거함 (낱말카드 전체화면에만 표시)
+    }
+
+    let cachedVoices = [];
+    function loadVoices() {
+      cachedVoices = speechSynthesis.getVoices();
+    }
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    function pickBestKoreanVoice() {
+      const koVoices = cachedVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
+      if (koVoices.length === 0) return null;
+      const preferred = koVoices.find(v => /google/i.test(v.name));
+      return preferred || koVoices[0];
+    }
+
+    function speak(text) {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ko-KR';
+      u.rate = 0.9; // 일부 음성/브라우저에서는 반영 안 될 수 있음 (알려진 한계)
+      const voice = pickBestKoreanVoice();
+      if (voice) u.voice = voice;
+      speechSynthesis.speak(u);
+    }
+
+    function downloadPdf() {
+      const btn = document.getElementById('vocabPdfBtn');
+      const t = T();
+      btn.textContent = '...';
+      api('vocabPdf', { chapter: currentChapter, lang: currentLang })
+        .then(result => {
+          btn.textContent = t.vocabPdf;
+          if (!result) { alert(t.pdfFailVocab); return; }
+          const link = document.createElement('a');
+          link.href = 'data:application/pdf;base64,' + result.base64;
+          link.download = result.filename;
+          link.click();
+        })
+        .catch(() => {
+          btn.textContent = t.vocabPdf;
+          alert(t.pdfErrorGeneric);
+        });
+    }
+
+    function downloadScriptPdf() {
+      const btn = document.getElementById('scriptPdfBtn');
+      const t = T();
+      btn.textContent = '...';
+      api('scriptPdf', { chapter: currentChapter, lang: currentLang })
+        .then(result => {
+          btn.textContent = t.scriptPdf;
+          if (!result) { alert(t.pdfFailScript); return; }
+          const link = document.createElement('a');
+          link.href = 'data:application/pdf;base64,' + result.base64;
+          link.download = result.filename;
+          link.click();
+        })
+        .catch(() => {
+          btn.textContent = t.scriptPdf;
+          alert(t.pdfErrorGeneric);
+        });
+    }
+
+    // ── 휴대폰 뒤로가기 버튼 → 앱 안에서 이전 화면으로 ──
+    const SCREEN_DEPTH = {
+      gateScreen: 0, langScreen: 1, chapterGridScreen: 2, mainScreen: 3,
+      vocabScreen: 4, flashcardScreen: 4, quizModeScreen: 4, matchScreen: 4, chunkPickScreen: 4,
+      learnScreen: 4
+    };
+    const SCREEN_BACK = {
+      learnScreen: () => closeLearnMode(),
+      quizModeScreen: () => closeQuizModePicker(),
+      flashcardScreen: () => closeFlashcardScreen(),
+      matchScreen: () => closeMatchGame(),
+      vocabScreen: () => closeVocabScreen(),
+      chunkPickScreen: () => closeChunkPicker(),
+      mainScreen: () => backToChapterGrid(),
+      chapterGridScreen: () => backToLangScreen()
+    };
+    let histDepth = 0;
+
+    function visibleScreen() {
+      const ids = Object.keys(SCREEN_DEPTH);
+      let best = 'gateScreen';
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.style.display !== 'none' && getComputedStyle(el).display !== 'none' &&
+            SCREEN_DEPTH[id] >= SCREEN_DEPTH[best]) best = id;
+      });
+      return best;
+    }
+
+    // 더 깊은 화면으로 들어가면 기록을 하나 추가
+    function syncNav() {
+      const d = SCREEN_DEPTH[visibleScreen()];
+      if (d > histDepth) {
+        histDepth = d;
+        try { history.pushState({ d: d }, ''); } catch (e) {}
+      }
+    }
+    document.addEventListener('click', () => setTimeout(syncNav, 0));
+
+    try {
+      history.replaceState({ d: 0 }, '');
+      window.addEventListener('popstate', e => {
+        const target = (e && e.state && e.state.d) || 0;
+        histDepth = target;
+        for (let i = 0; i < 6; i++) {
+          const cur = visibleScreen();
+          if (SCREEN_DEPTH[cur] <= target || !SCREEN_BACK[cur]) break;
+          SCREEN_BACK[cur]();
+        }
+      });
+    } catch (e) {}
+
+    window.PRESET_LANG = new URLSearchParams(location.search).get('lang') || '';
+    window.APP_URL = location.origin + location.pathname;
+
+    (function initKakaoBanner() {
+      if (!/KAKAOTALK/i.test(navigator.userAgent) || !window.APP_URL) return;
+      try { if (localStorage.getItem('ekc_kakao_banner_off') === '1') return; } catch (e) {}
+      document.getElementById('kakaoOpenBtn').href =
+        'kakaotalk://web/openExternal?url=' + encodeURIComponent(window.APP_URL);
+      document.getElementById('kakaoBanner').style.display = 'block';
+    })();
+
+    function dismissKakaoBanner() {
+      document.getElementById('kakaoBanner').style.display = 'none';
+      try { localStorage.setItem('ekc_kakao_banner_off', '1'); } catch (e) {}
+    }
+    logEvent('app_open');
+
+    // ── 카드 맞추기 게임 ──────────────────────────────
+    let matchSelected = null;
+    let matchTimerInterval = null;
+    let matchStartTime = 0;
+    let matchPairsLeft = 0;
+    let matchBusy = false; // 틀린 짝 표시(0.5초) 중에는 다른 카드 클릭 막기
+
+    function openMatchGame(items) {
+      logEvent('open_match', currentChapter);
+      closeAllTabMenus();
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('learnScreen').style.display = 'none';
+      document.getElementById('flashcardScreen').style.display = 'none';
+      document.getElementById('matchScreen').style.display = 'block';
+      document.getElementById('matchDone').style.display = 'none';
+      document.getElementById('matchGrid').style.display = 'grid';
+      matchSelected = null;
+      matchBusy = false;
+
+      const sourceItems = items || activeItems || currentItems;
+      activeItems = sourceItems;
+
+      // 한 번에 너무 많으면 어려우니 최대 8쌍(16타일)만 랜덤으로 뽑음
+      const pool = sourceItems.slice();
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const picked = pool.slice(0, Math.min(8, pool.length));
+      matchPairsLeft = picked.length;
+
+      let tiles = [];
+      picked.forEach((item, idx) => {
+        tiles.push({ id: idx, text: item.ko, pairId: idx });
+        tiles.push({ id: idx, text: item[currentLang] || item.en, pairId: idx });
+      });
+      for (let i = tiles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+      }
+
+      const grid = document.getElementById('matchGrid');
+      grid.innerHTML = '';
+      tiles.forEach((tile, i) => {
+        const el = document.createElement('div');
+        el.className = 'match-tile';
+        el.textContent = tile.text;
+        el.dataset.pairId = tile.pairId;
+        el.onclick = () => onTileClick(el);
+        grid.appendChild(el);
+      });
+
+      matchStartTime = Date.now();
+      clearInterval(matchTimerInterval);
+      matchTimerInterval = setInterval(() => {
+        const sec = ((Date.now() - matchStartTime) / 1000).toFixed(1);
+        document.getElementById('matchTimer').textContent = sec + 's';
+      }, 100);
+    }
+
+    function onTileClick(el) {
+      if (matchBusy || el.classList.contains('correct') || el === matchSelected) return;
+
+      if (!matchSelected) {
+        matchSelected = el;
+        el.classList.add('selected');
+        return;
+      }
+
+      if (matchSelected.dataset.pairId === el.dataset.pairId) {
+        matchSelected.classList.remove('selected');
+        matchSelected.classList.add('correct');
+        el.classList.add('correct');
+        matchSelected = null;
+        matchPairsLeft--;
+        if (matchPairsLeft <= 0) finishMatchGame();
+      } else {
+        const first = matchSelected;
+        matchBusy = true;
+        el.classList.add('wrong');
+        first.classList.add('wrong');
+        setTimeout(() => {
+          el.classList.remove('wrong', 'selected');
+          first.classList.remove('wrong', 'selected');
+          matchSelected = null;
+          matchBusy = false;
+        }, 500);
+      }
+    }
+
+    function finishMatchGame() {
+      clearInterval(matchTimerInterval);
+      const finalTime = ((Date.now() - matchStartTime) / 1000).toFixed(1);
+      document.getElementById('matchGrid').style.display = 'none';
+      document.getElementById('matchDone').style.display = 'block';
+      let best = null;
+      try { best = parseFloat(localStorage.getItem('ekc_match_best_' + currentChapter)); } catch (e) {}
+      const isRecord = !best || parseFloat(finalTime) < best;
+      if (isRecord) {
+        best = parseFloat(finalTime);
+        try { localStorage.setItem('ekc_match_best_' + currentChapter, String(best)); } catch (e) {}
+      }
+      document.getElementById('matchResultText').textContent =
+        T().matchResultText(finalTime) + '\n' + (isRecord ? T().newRecord : T().bestTime(best.toFixed(1)));
+      document.getElementById('matchResultText').style.whiteSpace = 'pre-line';
+      renderChunkNav('matchChunkNavContainer', 'match', T().nextChunkMatch);
+    }
+
+    function closeMatchGame() {
+      updateWeakButton();
+      clearInterval(matchTimerInterval);
+      document.getElementById('matchScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+    }
+
+    // ── 학습하기(Learn) 모드 ──────────────────────────
+    let learnQueue = [];
+    let learnPos = 0;
+    let learnCorrectCount = 0;
+    let learnTotalCount = 0;
+    let learnLocked = false;
+    let learnWrongTried = false;
+    let learnMissed = []; // 이번 퀴즈에서 틀리거나 모른다고 한 단어
+
+    function shuffleArray(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    let learnMode = 'm2k'; // m2k: 뜻→한국어, k2m: 한국어→뜻, listen: 듣고→한국어
+    let pendingQuizItems = null;
+
+    function applyQuizModeLabels() {
+      const t = T();
+      const m = t.quizModes[learnMode];
+      document.getElementById('learnWordLabel').textContent = m.label;
+      document.getElementById('chooseAnswerLabel').textContent = m.choose;
+      document.getElementById('quizGuide').textContent = m.guide;
+      document.getElementById('quizModeTitle').textContent = t.quizModeTitle;
+      ['m2k', 'k2m', 'listen'].forEach(k => {
+        document.getElementById('qmBtn_' + k).textContent = t.quizModes[k].name;
+      });
+    }
+
+    // Quiz 타일/“문제로 연습하기” → 퀴즈 종류 선택 화면
+    function openLearnMode(items) {
+      closeAllTabMenus();
+      pendingQuizItems = items || activeItems || currentItems;
+      ['mainScreen', 'matchScreen', 'flashcardScreen', 'learnScreen'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+      applyQuizModeLabels();
+      document.getElementById('quizModeScreen').style.display = 'block';
+    }
+
+    function closeQuizModePicker() {
+      document.getElementById('quizModeScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+    }
+
+    function startQuiz(mode) {
+      learnMode = mode;
+      logEvent('open_study', currentChapter + ' ' + mode);
+      document.getElementById('quizModeScreen').style.display = 'none';
+      document.getElementById('learnScreen').style.display = 'block';
+      document.getElementById('learnDone').style.display = 'none';
+      document.getElementById('learnWord').parentElement.style.display = 'block';
+      document.getElementById('chooseAnswerLabel').style.display = 'block';
+      document.getElementById('learnOptions').style.display = 'grid';
+      document.getElementById('quizGuide').style.display = 'block';
+      // 뜻→한국어 모드에서는 🔊가 정답을 알려주므로 숨김
+      document.getElementById('learnSpeakBtn').style.display = mode === 'm2k' ? 'none' : 'inline-block';
+      applyQuizModeLabels();
+
+      const sourceItems = pendingQuizItems || activeItems || currentItems;
+      activeItems = sourceItems;
+      learnQueue = shuffleArray(sourceItems);
+      learnPos = 0;
+      learnCorrectCount = 0;
+      learnTotalCount = learnQueue.length;
+      learnMissed = [];
+      document.getElementById('learnMissedBox').style.display = 'none';
+      renderLearnItem();
+    }
+
+    function addMissed(item) {
+      if (learnMissed.indexOf(item) === -1) learnMissed.push(item);
+    }
+
+    const meaningOf = (x) => x[currentLang] || x.en;
+
+    // 현재 모드에서 보기로 쓰는 값 (한국어 또는 뜻)
+    function answerOf(x) {
+      return learnMode === 'k2m' ? meaningOf(x) : x.ko;
+    }
+
+    function renderLearnItem() {
+      if (learnPos >= learnQueue.length) { finishLearnMode(); return; }
+
+      const item = learnQueue[learnPos];
+      const wordEl = document.getElementById('learnWord');
+      wordEl.onclick = null;
+      wordEl.style.cursor = 'default';
+      if (learnMode === 'm2k') {
+        wordEl.textContent = meaningOf(item);
+      } else if (learnMode === 'k2m') {
+        wordEl.textContent = item.ko;
+        speak(item.ko);
+      } else {
+        wordEl.textContent = T().listenAgain;
+        wordEl.style.cursor = 'pointer';
+        wordEl.onclick = () => speak(item.ko);
+        speak(item.ko);
+      }
+      document.getElementById('learnCounter').textContent = learnPos + ' / ' + learnTotalCount;
+      document.getElementById('learnProgressBar').style.width = Math.round((learnPos / learnTotalCount) * 100) + '%';
+
+      // 오답 3개는 다른 단어들 중 랜덤으로 (정답과 같은 글자인 보기는 제외)
+      const correct = answerOf(item);
+      const pool = [];
+      shuffleArray(currentItems).forEach(x => {
+        const v = answerOf(x);
+        if (x !== item && v && v !== correct && pool.indexOf(v) === -1) pool.push(v);
+      });
+      const options = shuffleArray([correct, ...pool.slice(0, 3)]);
+
+      learnLocked = false;   // 이 문제 처리 중(다음 문제로 넘어가는 중)인지
+      learnWrongTried = false; // 이 문제에서 한 번이라도 틀렸는지
+
+      const box = document.getElementById('learnOptions');
+      box.innerHTML = '';
+      options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.dataset.answer = opt;
+        btn.style.cssText = 'text-align:left; padding:16px; border-radius:10px; background:var(--surface); border:1px solid var(--border); cursor:pointer; font-size:15px; display:flex; gap:10px;';
+        btn.innerHTML = '<span style="color:var(--text-muted); font-size:13px;">' + (i + 1) + '</span><span></span>';
+        btn.lastChild.textContent = opt;
+        btn.onclick = () => {
+          if (learnLocked) return;
+          if (opt === correct) {
+            learnLocked = true;
+            btn.style.borderColor = '#2f9e44';
+            btn.style.background = '#eaf7ee';
+            // 한 번에 맞힌 경우만 정답으로 집계
+            if (!learnWrongTried) learnCorrectCount++;
+            // 듣기 모드는 정답 후 단어를 보여줌
+            if (learnMode === 'listen') wordEl.textContent = item.ko;
+            setTimeout(() => { learnPos++; renderLearnItem(); }, learnMode === 'listen' ? 900 : 400);
+          } else {
+            learnWrongTried = true;
+            setWeak(item.ko, true);
+            addMissed(item);
+            btn.style.borderColor = '#e5484d';
+            btn.style.background = '#fdeaea';
+          }
+        };
+        box.appendChild(btn);
+      });
+    }
+
+    // "모르시겠어요?" → 정답을 초록색으로 보여주고 읽어준 뒤 다음 문제로 (정답 집계 안 함)
+    function skipLearnItem() {
+      if (learnLocked) return;
+      const item = learnQueue[learnPos];
+      if (!item) return;
+      learnLocked = true;
+      setWeak(item.ko, true);
+      addMissed(item);
+      document.querySelectorAll('#learnOptions button').forEach(b => {
+        if (b.dataset.answer === answerOf(item)) {
+          b.style.borderColor = '#2f9e44';
+          b.style.background = '#eaf7ee';
+        } else {
+          b.style.opacity = '0.4';
+        }
+      });
+      if (learnMode === 'listen') document.getElementById('learnWord').textContent = item.ko;
+      speak(item.ko);
+      setTimeout(() => { learnPos++; renderLearnItem(); }, 1800);
+    }
+
+    function finishLearnMode() {
+      document.getElementById('learnWord').parentElement.style.display = 'none';
+      document.getElementById('chooseAnswerLabel').style.display = 'none';
+      document.getElementById('learnOptions').style.display = 'none';
+      document.getElementById('learnProgressBar').style.width = '100%';
+      document.getElementById('quizGuide').style.display = 'none';
+      document.getElementById('learnDone').style.display = 'block';
+      const t = T();
+      document.getElementById('learnDoneTitle').textContent = t.learnDoneTitle;
+      document.getElementById('learnResultText').textContent = t.learnResultText(learnTotalCount, learnCorrectCount);
+
+      // 틀린 단어 목록
+      const box = document.getElementById('learnMissedBox');
+      const list = document.getElementById('learnMissedList');
+      list.innerHTML = '';
+      if (learnMissed.length) {
+        document.getElementById('learnMissedTitle').textContent = t.missedTitle(learnMissed.length);
+        learnMissed.forEach(item => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:6px; border-radius:10px; background:var(--surface); border:1px solid var(--border);';
+          const b = document.createElement('button');
+          b.className = 'speak-btn';
+          b.textContent = '🔊';
+          b.onclick = () => speak(item.ko);
+          const ko = document.createElement('b');
+          ko.textContent = item.ko;
+          const tr = document.createElement('span');
+          tr.style.cssText = 'margin-left:auto; color:var(--text-muted); text-align:right;';
+          tr.textContent = meaningOf(item);
+          row.append(b, ko, tr);
+          list.appendChild(row);
+        });
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+
+      // 청크로 나뉜 챕터면, 다른 청크(이전/다음 모두)로 바로 이동할 수 있는 버튼들을 보여줌
+      renderChunkNav('learnChunkNavContainer', 'study', t.nextChunkStudy);
+    }
+
+    function closeLearnMode() {
+      updateWeakButton();
+      document.getElementById('learnScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+    }
   </script>
+
+  <!-- ===== 다크모드 (여기부터) ===== -->
+  <style>
+    #themeToggle {
+      position: fixed;
+      top: 12px; right: 12px;
+      z-index: 100;
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    /* 🌙 버튼 자리 비워두기 (오른쪽 위 버튼과 겹치지 않게) */
+    .grid-top,
+    .container > div > .top-row:first-child { padding-right: 52px; min-height: 42px; }
+    .center-screen { padding-top: 48px; }
+
+    body.dark {
+      --purple: #a78bfa;
+      --bg: #121218;
+      --surface: #1e1e28;
+      --border: #33334a;
+      --text-muted: #9a9ab0;
+      background: var(--bg);
+      color: #ececf1;
+    }
+
+    /* 글자색 */
+    body.dark button,
+    body.dark input,
+    body.dark .activity-tile,
+    body.dark .lang-btn,
+    body.dark .chapter-card,
+    body.dark #learnOptions button,
+    body.dark .tab-menu button,
+    body.dark #backToGridBtn,
+    body.dark .ctrl-btn,
+    body.dark .speak-btn,
+    body.dark .card-speak-btn,
+    body.dark #bigSpeakBtn { color: #ececf1; }
+    body.dark .btn,
+    body.dark .pdf-btn { color: #fff; }
+    body.dark #restartFlashBtn { color: #ececf1 !important; }
+    body.dark #bigTr,
+    body.dark .card-tr { color: #d6d6e0; }
+    body.dark #flashDonutText { color: #ececf1 !important; }
+
+    /* 입력창 */
+    body.dark #codeInput,
+    body.dark #chapterSearch {
+      background: var(--surface);
+      border-color: var(--border);
+      color: #ececf1;
+    }
+
+    /* 호버/선택 강조 */
+    body.dark .lang-btn:hover,
+    body.dark .chapter-card:hover,
+    body.dark .activity-tile:hover,
+    body.dark .tab-menu button:hover { background: #2a2340; }
+
+    body.dark #langBadge,
+    body.dark #langBadgeGrid {
+      background: #2a2340;
+      color: #c4b5fd;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+
+    body.dark .btn { background: #7c3aed; }
+    body.dark .pdf-btn,
+    body.dark #reviewLearningBtn,
+    body.dark #practiceFromResultsBtn {
+      background: #2d2d40 !important;
+      border: 1px solid #44445e;
+    }
+
+    /* 카드 맞추기 */
+    body.dark .match-tile.selected { background: #2a2340; }
+    body.dark .match-tile.wrong { background: #3a1f24; border-color: #e5484d; }
+
+    /* 퀴즈 정답/오답 표시 (밝은 배경이 들어가므로 글자는 어둡게) */
+    body.dark #learnOptions button[style*="234, 247, 238"],
+    body.dark #learnOptions button[style*="253, 234, 234"] { color: #1a1a2e !important; }
+
+    /* 결과 화면 */
+    body.dark .dot.remain { background: #44445e; }
+    body.dark .tab-menu { box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+  </style>
+
+  <button id="themeToggle" onclick="toggleTheme()" title="Dark mode">🌙</button>
+
+  <script>
+    function applyTheme(isDark) {
+      document.body.classList.toggle('dark', isDark);
+      document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
+    }
+
+    function toggleTheme() {
+      const isDark = !document.body.classList.contains('dark');
+      applyTheme(isDark);
+      try { localStorage.setItem('ekc_theme', isDark ? 'dark' : 'light'); } catch (e) {}
+    }
+
+    (function initTheme() {
+      let saved = null;
+      try { saved = localStorage.getItem('ekc_theme'); } catch (e) {}
+      // 저장된 설정이 없으면 기기 설정(다크/라이트)을 따라감
+      const isDark = saved
+        ? saved === 'dark'
+        : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(isDark);
+    })();
+  </script>
+  <!-- ===== 다크모드 (여기까지) ===== -->
 </body>
 </html>
