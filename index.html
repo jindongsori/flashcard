@@ -742,7 +742,7 @@
     window.addEventListener('error', ev => showDebugError('error', ev.message + ' (line ' + ev.lineno + ')'));
 
     // ── Apps Script 서버 주소 (배포 관리에 나오는 /exec 주소) ──
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzxSQhSiMGCbA4sfVQV2z8qLvAo2XJeDIbtSI-4tmbm53oZt2cjoRVxoUMrrVTSpyU/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbytN3aNXU12JuH3v3ccAkEGyMXcbErnncBn7UAq1nEXEqtwCcAgifeGE3z-4xzic4Ql/exec';
 
     function api(action, params) {
       return fetch(API_URL, {
@@ -1943,6 +1943,15 @@
       try { localStorage.setItem('ekc_kakao_banner_off', '1'); } catch (e) {}
     }
     logEvent('app_open');
+
+    // 비밀번호 없이 바로 입장 (입력칸·안내문 숨기고 자동으로 데이터 불러오기)
+    (function autoEnter() {
+      document.getElementById('codeInput').value = '2607';
+      document.getElementById('codeInput').style.display = 'none';
+      document.querySelector('#gateScreen p').style.display = 'none';
+      document.querySelector('#gateScreen .btn').textContent = 'Retry';
+      submitCode();
+    })();
 
     // ── 카드 맞추기 게임 ──────────────────────────────
     let matchSelected = null;
