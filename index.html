@@ -483,10 +483,9 @@
     <!-- 1. 코드 입력 게이트 -->
     <div id="gateScreen" class="center-screen">
       <h2>EasyKoreanConversation</h2>
-      <p>Enter this month's member code<br>(check the members-only post)</p>
-      <input id="codeInput" type="text" placeholder="Enter code" />
+      <input id="codeInput" type="hidden" value="2607" />
       <div id="gateError"></div>
-      <button class="btn" onclick="submitCode()">Enter</button>
+      <button class="btn" style="display:none" onclick="submitCode()">Retry</button>
     </div>
 
     <!-- 2. 언어 선택 화면 -->
@@ -1367,14 +1366,14 @@
       const btn = document.querySelector('#gateScreen .btn');
       err.classList.add('loading');
       err.innerHTML = '<span class="spinner"></span>Loading...';
-      btn.disabled = true;
-      btn.style.opacity = '0.5';
-      const done = () => { err.classList.remove('loading'); btn.disabled = false; btn.style.opacity = ''; };
+      btn.style.display = 'none';
+      const done = () => { err.classList.remove('loading'); };
       api('verify', { code: code })
         .then(r => { done(); onCodeResult(r); })
         .catch(() => {
           done();
           err.textContent = 'An error occurred. Please try again.';
+          btn.style.display = '';
         });
     }
 
@@ -2006,10 +2005,6 @@
 
     // 비밀번호 없이 바로 입장 (입력칸·안내문 숨기고 자동으로 데이터 불러오기)
     (function autoEnter() {
-      document.getElementById('codeInput').value = '2607';
-      document.getElementById('codeInput').style.display = 'none';
-      document.querySelector('#gateScreen p').style.display = 'none';
-      document.querySelector('#gateScreen .btn').textContent = 'Retry';
       submitCode();
     })();
 
