@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EasyKoreanConversation 단어카드</title>
   <style>
@@ -1872,11 +1873,15 @@
     }
 
     let cachedVoices = [];
+    const HAS_TTS = typeof window.speechSynthesis !== 'undefined';
     function loadVoices() {
-      cachedVoices = speechSynthesis.getVoices();
+      if (!HAS_TTS) return;
+      try { cachedVoices = speechSynthesis.getVoices(); } catch (e) {}
     }
-    speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
+    if (HAS_TTS) {
+      try { speechSynthesis.onvoiceschanged = loadVoices; } catch (e) {}
+      loadVoices();
+    }
 
     function pickBestKoreanVoice() {
       const koVoices = cachedVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
@@ -1886,6 +1891,10 @@
     }
 
     function speak(text, rate) {
+      if (!HAS_TTS || typeof SpeechSynthesisUtterance === 'undefined') {
+        alert('Audio is not supported in this app. Please open in Chrome or Safari.');
+        return;
+      }
       try { speechSynthesis.cancel(); } catch (e) {}
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'ko-KR';
