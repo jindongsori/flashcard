@@ -2,7 +2,6 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EasyKoreanConversation 단어카드</title>
   <style>
@@ -548,6 +547,7 @@
           <span class="activity-icon">▶️</span>
           <span id="youtubeLabel">Watch on YouTube</span>
         </button>
+        <div id="youtubeSplit" style="display:none; grid-template-columns:1fr 1fr; gap:8px;"></div>
       </div>
 
       <button id="weakReviewBtn" class="pdf-btn" style="display:none; width:100%; margin-top:12px; background:#e8590c;" onclick="startWeakReview()"></button>
@@ -1515,15 +1515,35 @@
       document.getElementById('chapterGridScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'block';
       document.getElementById('currentChapterLabel').textContent = chapterName;
-      document.getElementById('youtubeBtn').style.display = allLinks[chapterName] ? 'flex' : 'none';
+      const ytLinks = splitLinks(allLinks[chapterName]);
+      document.getElementById('youtubeBtn').style.display = ytLinks.length === 1 ? 'flex' : 'none';
+      const ytSplit = document.getElementById('youtubeSplit');
+      if (ytLinks.length > 1) {
+        const base = chapterName.replace(/^ep/i, '');
+        ytSplit.innerHTML = '';
+        ytLinks.forEach((u, i) => {
+          const b = document.createElement('button');
+          b.className = 'activity-tile';
+          b.innerHTML = '<span class="activity-icon">▶️</span><span>' + base + '-' + (i + 1) + '</span>';
+          b.onclick = () => openYoutube(i);
+          ytSplit.appendChild(b);
+        });
+        ytSplit.style.display = 'grid';
+      } else {
+        ytSplit.style.display = 'none';
+      }
       updateWeakButton();
 
       renderMiniCard();
       renderList();
     }
 
-    function openYoutube() {
-      const url = allLinks[currentChapter];
+    function splitLinks(v) {
+      return String(v || '').split(/[\s,|]+/).filter(x => /^https?:\/\//.test(x));
+    }
+
+    function openYoutube(i) {
+      const url = splitLinks(allLinks[currentChapter])[i || 0];
       if (!url) return;
       logEvent('open_youtube', currentChapter);
       window.open(url, '_blank');
@@ -1873,15 +1893,11 @@
     }
 
     let cachedVoices = [];
-    const HAS_TTS = typeof window.speechSynthesis !== 'undefined';
     function loadVoices() {
-      if (!HAS_TTS) return;
-      try { cachedVoices = speechSynthesis.getVoices(); } catch (e) {}
+      cachedVoices = speechSynthesis.getVoices();
     }
-    if (HAS_TTS) {
-      try { speechSynthesis.onvoiceschanged = loadVoices; } catch (e) {}
-      loadVoices();
-    }
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
 
     function pickBestKoreanVoice() {
       const koVoices = cachedVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
@@ -1891,10 +1907,6 @@
     }
 
     function speak(text, rate) {
-      if (!HAS_TTS || typeof SpeechSynthesisUtterance === 'undefined') {
-        alert('Audio is not supported in this app. Please open in Chrome or Safari.');
-        return;
-      }
       try { speechSynthesis.cancel(); } catch (e) {}
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'ko-KR';
